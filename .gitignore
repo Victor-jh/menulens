@@ -1,0 +1,50 @@
+# Secrets - NEVER commit
+.env
+.env.local
+*.key
+gcloud-key.json
+.cost_log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+build/
+.vercel
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local data (not ready for commit)
+backend/data/*.xlsx
+backend/data/*.csv.bak
+backend/data/hansik_800_raw.*
+tests/sample_menus/*.jpg
+tests/sample_menus/*.png
+!tests/sample_menus/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Submission drafts
+docs/submission/*.draft.*

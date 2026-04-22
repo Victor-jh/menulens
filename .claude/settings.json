@@ -1,0 +1,21 @@
+{
+  "model": "claude-sonnet-4-6",
+  "systemPromptAppend": "Follow AGENTS.md strictly. Read CONTEXT.md and ROADMAP.md before any action. If scope creep detected, quote AGENTS.md section 11 and halt.",
+  "allowedTools": [
+    "Read",
+    "Write", 
+    "Edit",
+    "Bash",
+    "Glob",
+    "Grep",
+    "WebFetch"
+  ],
+  "autoApprove": {
+    "readFiles": true,
+    "listFiles": true
+  },
+  "gitIntegration": {
+    "commitFormat": "D{day}: {summary}",
+    "requireTestsPass": true
+  }
+}
