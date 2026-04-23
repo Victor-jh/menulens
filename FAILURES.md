@@ -17,9 +17,31 @@
 
 ---
 
-## 기록 없음 (아직)
+## 2026-04-23 · D3 파이프라인 실행 블로커 (진짜 800선 미수급)
+**상황**: D3 ROADMAP = 800선 CSV 다운로드 → 정규화 → pgvector 적재 → "김치찌개" 캐너리
+**문제**: 선행 리소스 전부 미구비
+- ❌ `.env` 없음 (GEMINI/OPENAI/SUPABASE 키 미설정)
+- ❌ `backend/data/hansik_800.csv` 실제 다운로드 안 됨 — ROADMAP D1 체크박스 "한식진흥원 길라잡이 800선 파일 다운로드 (15129784)" 아직 미완료
+- ❌ Supabase 프로젝트 자체가 없음 (URL·키 없음) — ROADMAP D2 "Supabase 프로젝트 생성" 미완료
+- ❌ OpenAI API 키 없음
+**시도**:
+- venv 생성 + pandas/pydantic/dotenv 설치 → 로컬 dry-run 가능한 수준까지 올림
+- `backend/data/hansik_800.csv` **합성 10행 샘플** 투입 → 파이프라인 로직(정규화·태그·분류) 전 단계 검증 완료
+- 실 데이터 컬럼 매핑 유연화: `backend/data/hansik_800_column_map.json` 파일이 있으면 오버라이드
+**해결/우회**:
+- 스캐폴드 4개 생성: `backend/db/001_hansik_800.sql`, `backend/scripts/load_hansik_800.py`, `backend/agents/dish_profiler.py` (D3 RAG 로직 구현), 합성 CSV
+- 키·실CSV·Supabase 확보 즉시 `python -m backend.scripts.load_hansik_800` 한 줄로 실행 가능
+**교훈**: D1·D2 선행 조건(계정·키·CSV) 전제 체크 없이 D3 실행 코드부터 짜면 dry-run에서 멈춤. 공공데이터포털 활용신청은 승인까지 시간차가 있으므로 D0에 제출해야 한다. 다음 맥북 세션 첫 작업: **키 3개 + CSV + Supabase 프로젝트 생성 먼저**.
 
-첫 실패를 기록할 때 이 섹션을 지우고 위 템플릿대로 작성.
+### D3 재개 조건 체크리스트 (맥북이 다음에 볼 것)
+- [ ] 공공데이터포털 15129784 활용신청 승인 → CSV 다운로드 → `backend/data/hansik_800.csv` 덮어쓰기
+- [ ] 실 CSV `head -1` 결과 확인 → 컬럼명이 spec §1.2와 다르면 `backend/data/hansik_800_column_map.json` 작성
+- [ ] Supabase 프로젝트 생성 → `backend/db/001_hansik_800.sql` SQL Editor 실행
+- [ ] `.env` 에 `OPENAI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` 기입
+- [ ] `.venv/bin/pip install -r backend/requirements.txt`
+- [ ] `python -m backend.scripts.load_hansik_800 --dry-run` → 정상
+- [ ] `python -m backend.scripts.load_hansik_800` → 캐너리 PASS
+- [ ] 실 컬럼명으로 `docs/research/05_한식800선_정제스펙.md §1.2` Cowork에게 갱신 요청
 
 ---
 

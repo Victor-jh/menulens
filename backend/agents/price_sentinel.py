@@ -115,10 +115,11 @@ async def judge_price(dish_name: str, listed_price: int) -> PriceJudgment:
 if __name__ == "__main__":
     import asyncio
     # Quick sanity test
+    # 참가격 김치찌개=8,577 기준: 9000(105%)=🟢, 10500(122%)=🟡, 12000(140%)=🔴
     test_cases = [
-        ("김치찌개", 9000),     # fair
-        ("김치찌개", 12000),    # caution
-        ("김치찌개", 15000),    # suspect
+        ("김치찌개", 9000),     # fair 🟢
+        ("김치찌개", 10500),    # caution 🟡 (110~130% 경계)
+        ("김치찌개", 12000),    # suspect 🔴 (ROADMAP D4 canary)
         ("떡볶이", 5000),       # unknown (not in 8품목)
     ]
     for name, price in test_cases:

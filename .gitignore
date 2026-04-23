@@ -36,8 +36,10 @@ Thumbs.db
 
 # Local data (not ready for commit)
 backend/data/*.xlsx
+backend/data/*.csv
 backend/data/*.csv.bak
 backend/data/hansik_800_raw.*
+!tests/fixtures/*.csv
 tests/sample_menus/*.jpg
 tests/sample_menus/*.png
 !tests/sample_menus/.gitkeep

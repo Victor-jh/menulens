@@ -1,0 +1,11 @@
+연번,분류_대,분류_중,메뉴명_한국어,메뉴명_영문,메뉴명_영문_설명,메뉴명_일본어,메뉴명_중간체,메뉴명_중번체,설명_한국어,설명_영문,주재료,사진경로
+1,부식류,찌개,김치찌개,Kimchi-jjigae,fermented kimchi stew,キムチチゲ,泡菜汤,泡菜湯,김치·돼지고기·두부를 넣고 끓인 매운맛 찌개,Spicy stew with kimchi pork and tofu,"김치, 돼지고기, 두부, 양파, 대파",/images/ko/001.jpg
+2,부식류,찌개,된장찌개,Doenjang-jjigae,fermented soybean paste stew,味噌チゲ,大酱汤,大醬湯,된장·두부·채소를 넣고 끓인 국물요리,Soybean paste stew with tofu and vegetables,"된장, 두부, 애호박, 양파, 감자",/images/ko/002.jpg
+3,주식류,밥,비빔밥,Bibimbap,mixed rice with vegetables,ビビンバ,拌饭,拌飯,밥 위에 나물·고기·계란을 올려 고추장에 비벼 먹는 한국 대표 요리,Rice mixed with assorted vegetables meat and egg,"밥, 소고기, 시금치, 콩나물, 계란, 고추장",/images/ko/003.jpg
+4,부식류,구이,삼겹살,Samgyeopsal,grilled pork belly,サムギョプサル,五花肉,五花肉,돼지고기 삼겹살을 불판에 구워 먹는 요리,Grilled pork belly,"삼겹살, 소금",/images/ko/004.jpg
+5,주식류,면,칼국수,Kal-guksu,noodle soup,カルグクス,刀削面,刀削麵,밀가루 반죽을 칼로 썰어 끓인 국수,Handmade knife-cut noodles in broth,"밀가루, 멸치, 애호박, 감자",/images/ko/005.jpg
+6,부식류,찜,삼계탕,Samgye-tang,ginseng chicken soup,サムゲタン,参鸡汤,蔘鷄湯,닭 속에 인삼·대추·찹쌀을 넣고 끓인 보양식,Whole young chicken stuffed with ginseng and rice,"닭, 인삼, 대추, 찹쌀, 마늘",/images/ko/006.jpg
+7,주식류,면,냉면,Naengmyeon,cold buckwheat noodles,冷麺,冷面,冷麵,메밀면을 차가운 육수에 말아 먹는 여름 음식,Cold buckwheat noodles in chilled broth,"메밀, 소고기, 오이, 배, 계란",/images/ko/007.jpg
+8,주식류,밥,김밥,Gimbap,seaweed rice roll,海苔巻き,紫菜包饭,紫菜包飯,밥과 채소·계란·햄을 김에 싸서 만 롤,Rice and vegetables rolled in dried seaweed,"밥, 김, 계란, 햄, 시금치, 단무지",/images/ko/008.jpg
+9,부식류,볶음,제육볶음,Jeyuk-bokkeum,spicy stir-fried pork,豚肉の辛炒め,辣炒猪肉,辣炒豬肉,돼지고기를 고추장에 양념하여 볶은 요리,Spicy stir-fried pork in gochujang,"돼지고기, 고추장, 양파, 대파, 마늘",/images/ko/009.jpg
+10,후식류,떡,떡볶이,Tteok-bokki,spicy rice cakes,トッポッキ,辣炒年糕,辣炒年糕,가래떡을 고추장 양념에 볶은 한국식 간식,Stir-fried rice cakes in spicy gochujang sauce,"떡, 고추장, 어묵, 양파, 대파",/images/ko/010.jpg
