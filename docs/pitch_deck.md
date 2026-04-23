@@ -221,15 +221,21 @@ lawsuit at Gwangjang Market (2025.11)
 - [ ] 삼각대 또는 짐벌 (옵션)
 - [ ] 조명 1개 (식당 저조도 보완)
 
-### 3.2 촬영 장소
+### 3.2 촬영 장소 및 소품
 - [ ] 실제 식당 1곳 (동탄 or 안동 주변, 촬영 허가 받기)
-- [ ] Plan B: 메뉴판 인쇄본 + 집에서 스튜디오 셋업
+- [ ] Plan B: 메뉴판 인쇄본 + 집에서 스튜디오 셋업 — 상세 레이아웃은 `docs/research/06_샘플메뉴판_시연용.md` 참조
 - [ ] 카운터 직원 역: 지인 1명 섭외
+
+**촬영 소품 체크리스트**:
+- [ ] 메뉴판 인쇄본 (A3 또는 A4, 맞춤 레이아웃 — §촬영용 샘플 참조)
+- [ ] 촬영용 휴대폰 2대 (1대는 MenuLens 실행, 1대는 외부 촬영)
+- [ ] 식당 분위기 소품 (수저·물컵·반찬 그릇 — 선택)
+- [ ] 조명 1개 (메뉴판 컬러 박스가 선명히 보이도록)
 
 ### 3.3 편집 (CapCut)
 - [ ] 자막 트랙 2개 (영문 상단 · 한국어 하단)
-- [ ] BGM: Pixabay 무료 저작권 (upbeat 60~80 BPM)
-- [ ] SFX: 셔터음 · 알림음 · whoosh (Pixabay)
+- [ ] BGM: 후보 3곡 중 택 1 (§3.6 참조)
+- [ ] SFX: 셔터음 · 알림음 · whoosh (Pixabay Free)
 - [ ] 색보정: 메뉴판 컬러 발색 강조 (🟢🟡🔴이 선명해야 함)
 
 ### 3.4 화면 녹화
@@ -239,7 +245,52 @@ lawsuit at Gwangjang Market (2025.11)
 
 ### 3.5 업로드·링크
 - [ ] YouTube Unlisted 업로드 (제목: "MenuLens — Korean Menu AI Assistant Demo")
-- [ ] 백업: Google Drive + 로컬 디스크 2곳
+- [ ] 백업: Google Drive + 로컬
+
+### 3.6 BGM 후보 (저작권 무료, 확인 후 택 1)
+
+전부 **Pixabay Music** (No attribution required, 상업 사용 가능). 각 곡은 upbeat · 60~80 BPM · 90초 이내 편집 가능.
+
+| 곡 순위 | 톤 | URL (검색 → 청취) | 비고 |
+|---|---|---|---|
+| **1순위** | Energetic Tech / Corporate Upbeat | Pixabay 검색 `"corporate tech upbeat"` 또는 `"future travel"` | Hook-Problem 전환점에서 drop 있는 곡 권장 |
+| 2순위 | Minimal Lo-Fi / Inspirational | Pixabay 검색 `"inspirational minimal"` | 감성 우세, 데이터 숫자 카드 구간에 적합 |
+| 3순위 | Cinematic Asian Fusion | Pixabay 검색 `"k-pop instrumental"` 또는 `"asian cinematic"` | K-컬처 맥락 강조 — 단 저작권 더 주의 |
+
+**대안 소스**:
+- **YouTube Audio Library** (Creator Studio → Audio Library) — "Upbeat / Happy" 필터
+- **Uppbeat.io** (무료 가입, attribution required — 설명란에 크레딧 명시)
+
+### 3.7 SFX 후보 (저작권 무료)
+
+| 효과음 | 사용 구간 | 소스 | 키워드 |
+|---|---|---|---|
+| 셔터음 | [0:25] 찰칵 | iPhone 기본음 또는 Pixabay | `camera shutter` |
+| 알림음 "딩" | [0:30] 결과 뜨는 순간 | Pixabay | `notification ding` |
+| Whoosh | [0:25~0:30] 로딩 페이드 | Pixabay | `whoosh transition` |
+| 박수·긍정 SFX | [0:55] 주문 완료 미소 | 사용 안 함 (과잉 연출 위험) | — |
+
+### 3.8 크레딧 표시 (영상 설명란에 필수)
+
+영상 설명란(YouTube Description)에 다음 3문단 삽입:
+
+```
+MenuLens — Korean Menu AI Assistant for Inbound Tourists
+Demo video for the 2026 Korea Tourism Organization Data Utilization Competition.
+
+GitHub: https://github.com/Victor-jh/menulens
+Proposal deck: [Google Drive link]
+
+Powered by:
+- Claude Sonnet 4.6 (Anthropic)
+- Gemini 2.5 Flash Vision (Google)
+- Korea Tourism Organization TourAPI 4.0
+- 한식진흥원 길라잡이 800선 (공공데이터포털 15129784)
+- 한국소비자원 참가격 (price.go.kr)
+
+Music: [곡명 · 아티스트 · 출처 URL]
+SFX: Pixabay Free Sound Effects
+``` 디스크 2곳
 - [ ] 제안서 마지막 페이지에 QR 코드 삽입 (YouTube Unlisted URL)
 
 ---

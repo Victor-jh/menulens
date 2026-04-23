@@ -92,7 +92,8 @@
 - `docs/research/02_기술검증.md` — 9개 기술 주장 검증 (6통과·2재설계·1폐기)
 - `docs/research/03_시장_배경_리서치.md` — 2,000만 방한·바가지 사태 데이터
 - `docs/research/04_공공데이터_접근법.md` — 6개 공공 API 실무 접근법
-- `docs/research/05_한식800선_정제스펙.md` — Supabase 적재 스키마·알레르기 매핑
+- `docs/research/05_한식800선_정제스펙.md` — Supabase 적재 스키마·알레르기 매핑 (v2, dry-run 검증 통과)
+- `docs/research/06_샘플메뉴판_시연용.md` — D9 촬영용 A3 메뉴판 레이아웃·메뉴 8개 설계
 
 ## 응답 스타일
 - userPreferences 준수 (심층·체계적·길이 제한 없음)
