@@ -48,3 +48,8 @@ logs/
 
 # Submission drafts
 docs/submission/*.draft.*
+
+# Submission build artifacts (regeneratable from proposal.md + official HWP template)
+docs/submission/build/
+
+# Note: docs/submission/official/ (공식 원본) and docs/submission/final/ (제출 최종본)은 git 커밋 포함
