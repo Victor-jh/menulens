@@ -29,14 +29,17 @@
 - **완료 기준**: `python -m backend.agents.menu_reader tests/sample_menus/menu1.jpg` 실행 시 메뉴명·가격 리스트 출력
 - **실 소요 예상**: 2~3시간
 
-### D3 — 2026-04-23 (수) · 한식진흥원 RAG
-- [ ] 한식진흥원 800선 CSV → 정제 → Supabase Postgres 적재
-- [ ] OpenAI text-embedding-3-small로 각 메뉴명 임베딩
-- [ ] pgvector 확장 활성화, 유사도 검색 테스트
-- [ ] `backend/agents/dish_profiler.py` 뼈대
-- [ ] "김치찌개" → "Kimchi-jjigae (fermented kimchi stew)" 복귀 확인
-- **완료 기준**: 쿼리 메뉴명 입력 시 표준 번역 + 설명 반환
-- **실 소요 예상**: 2~3시간
+### D3 — 2026-04-23 (목) · 한식진흥원 RAG
+- [ ] 한식진흥원 800선 CSV → 정제 → Supabase Postgres 적재 ← **블로커: 15129784 활용신청·Supabase 프로젝트 미완료**
+- [ ] OpenAI text-embedding-3-small로 각 메뉴명 임베딩 ← **블로커: OPENAI_API_KEY 미설정**
+- [ ] pgvector 확장 활성화, 유사도 검색 테스트 ← **블로커: Supabase 프로젝트 미생성**
+- [x] `backend/agents/dish_profiler.py` 뼈대 — 맥북 D3 오후 구현 완료 (spec §4.3 임계값 0.65/0.50)
+- [x] Cowork 정제 스펙 작성 — `docs/research/05_한식800선_정제스펙.md` (v2)
+- [x] 백엔드 스캐폴드 — `backend/db/001_hansik_800.sql`, `backend/scripts/load_hansik_800.py`
+- [x] Dry-run 검증 (10행 합성 CSV) — 분류 로직 정합 확인
+- [ ] "김치찌개" → "Kimchi-jjigae (fermented kimchi stew)" 실 캐너리 확인 ← **실 CSV + Supabase 필요**
+- **완료 기준**: 쿼리 메뉴명 입력 시 표준 번역 + 설명 반환 (실 CSV 없이 dry-run만 완료 상태)
+- **실 소요 예상**: 2~3시간 → 실제: 골격 완료·블로커 3종 대기
 
 ### D4 — 2026-04-24 (목) · 가격 Sentinel
 - [ ] 한국소비자원 참가격 8품목 데이터 수집 (price.go.kr 수동 수집 or 스크래핑)
