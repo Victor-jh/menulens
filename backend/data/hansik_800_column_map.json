@@ -1,0 +1,15 @@
+{
+  "source_no": "요리번호",
+  "category": "800선 카테고리",
+  "name_ko": "요리명",
+  "romanization": "라틴어 발음",
+  "desc_ko": "설명(요리명제외)",
+  "name_en": "영어",
+  "desc_en": "설명(요리명제외).1",
+  "name_ja": "일본어",
+  "desc_ja": "설명(요리명제외).2",
+  "name_zh_simp": "중문1",
+  "desc_zh_simp": "설명(요리명제외).3",
+  "name_zh_trad": "중문2",
+  "desc_zh_trad": "설명(요리명제외).4"
+}
