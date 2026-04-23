@@ -1,7 +1,7 @@
 # MenuLens — Project Context
 
 > 모든 새 Claude 세션의 첫 참조 문서. 여기만 읽으면 즉시 온보딩된다.
-> 마지막 업데이트: 2026-04-21 (D1)
+> 마지막 업데이트: 2026-04-23 (D3, Cowork)
 
 ---
 
@@ -51,9 +51,9 @@
 - **예상 총 지출: $0 ~ 최대 5만원**
 
 ## 타임라인 현재 위치
-- **현재**: D1 (2026-04-21 월)
-- **Hard Gate**: D7 (2026-04-27 일) — PoC 작동 여부로 Go/No-Go
-- **제출 마감**: D16 (2026-05-06 화) 16:00
+- **현재**: D3 (2026-04-23 목) — 맥북 D2 Gemini Vision PoC / Cowork D10~D11 선제 준비
+- **Hard Gate**: D7 (2026-04-27 월) — PoC 작동 여부로 Go/No-Go (**4일 남음**)
+- **제출 마감**: D16 (2026-05-06 수) 16:00
 
 ## 핵심 금지 사항 (확산 방지)
 - ❌ 에이전트 추가 (3개로 고정)
@@ -72,11 +72,21 @@
 
 ## 참조 문서
 - `ROADMAP.md` — D1~D16 일일 체크리스트
-- `DECISIONS.md` — 의사결정 로그
+- `DECISIONS.md` — 의사결정 로그 (ADR-001~006)
 - `FAILURES.md` — 실패·시행착오 기록
+- `AGENTS.md` — Claude Code용 마스터 지시서 (코드 작업 시 필독)
 - `docs/proposal.md` — 공모전 제안서 5p 본문
-- `docs/research/` — 공공데이터·기술 검증 보고서
-- `AGENTS.md` — Claude Code용 마스터 지시서
+- `docs/user_stories.md` — 페르소나 4인 (Chen·Yui·Malik·John)
+- `docs/pitch_deck.md` — 시연 영상 1분 30초 샷리스트
+- `docs/review_proposal_scorecard.md` — 제안서 자체 채점 (D3: 77/100 baseline)
+- `docs/submission/checklist.md` — 공모전 접수 체크리스트
+- `docs/submission/hwp_conversion_plan.md` — D11 MD→PDF/HWP 변환 플랜
+- `docs/research/00_Cowork_온보딩.md` — 대화 이력 요약 (신규 세션 첫 읽기)
+- `docs/research/01_다각도_심층검토.md` — 30개 시선 비판·지지·전문가 검토
+- `docs/research/02_기술검증.md` — 9개 기술 주장 검증 (6통과·2재설계·1폐기)
+- `docs/research/03_시장_배경_리서치.md` — 2,000만 방한·바가지 사태 데이터
+- `docs/research/04_공공데이터_접근법.md` — 6개 공공 API 실무 접근법
+- `docs/research/05_한식800선_정제스펙.md` — Supabase 적재 스키마·알레르기 매핑
 
 ## 응답 스타일
 - userPreferences 준수 (심층·체계적·길이 제한 없음)

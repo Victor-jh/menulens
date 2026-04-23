@@ -15,6 +15,13 @@ Before taking any action, read these files:
 3. `DECISIONS.md` — Why things are the way they are (do not violate existing ADRs)
 4. `FAILURES.md` — Past mistakes to avoid
 
+### Task-specific additional reading
+- **D3 RAG work (hansik 800 ingestion)**: `docs/research/05_한식800선_정제스펙.md` — schema, allergy mapping, embedding rules
+- **D10 proposal finalization**: `docs/review_proposal_scorecard.md` — self-score baseline and 6 improvement points
+- **D11 HWP/PDF conversion**: `docs/submission/hwp_conversion_plan.md` — pandoc + reference.docx pipeline
+- **D14~D16 submission**: `docs/submission/checklist.md` — form fields, backup policy, fail-safe plans
+- **Video script references**: `docs/pitch_deck.md` and `docs/user_stories.md`
+
 ## 3. Coding Principles
 - **Language**: Python 3.11+ for backend, TypeScript for frontend
 - **Style**: PEP 8, use `black` for formatting, `ruff` for linting

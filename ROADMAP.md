@@ -8,8 +8,8 @@
 ## Week 1: PoC 스프린트 (Hard Gate 포함)
 
 ### D1 — 2026-04-21 (월) · 셋업
-- [ ] GitHub 저장소 생성 (`Victor-jh/menulens`)
-- [ ] 이 프로젝트 구조를 맥북에 푸시
+- [x] GitHub 저장소 생성 (`Victor-jh/menulens`) — private, 2026-04-22 푸시 완료
+- [x] 이 프로젝트 구조를 맥북에 푸시 — 첫 커밋 `729914d D1: initial project scaffold`
 - [ ] 공공데이터포털 계정 확인, TourAPI 활용신청 (15101578)
 - [ ] 한식진흥원 길라잡이 800선 파일 다운로드 (15129784)
 - [ ] 한국관광콘텐츠랩 (api.visitkorea.or.kr) 회원가입
@@ -17,6 +17,7 @@
 - [ ] 실제 메뉴판 사진 수집 계획 수립 (안동 카페 주변/동탄 한식당 5장)
 - **완료 기준**: 이 저장소가 GitHub에 존재하고, 800선 CSV가 `backend/data/`에 있다
 - **실 소요 예상**: 1시간
+- **D3 추가 비고(Cowork)**: 800선 적재용 스펙 `docs/research/05_한식800선_정제스펙.md` 선제 작성 완료 → 맥북 작업 시 참조
 
 ### D2 — 2026-04-22 (화) · Gemini Vision PoC
 - [ ] Gemini API 키 발급 (AI Studio)
@@ -97,9 +98,10 @@
   - 4) 서비스 발전 방향 (Phase 2 Dashboard 포함)
 
 ### D11 — 2026-05-01 (목) · 제안서 퇴고
-- [ ] 심사 배점(100점) 체크리스트로 자체 채점
+- [ ] 심사 배점(100점) 체크리스트로 자체 채점 — 초안 채점 완료 (`docs/review_proposal_scorecard.md`, D3 기준 77/100)
+- [ ] 보완 포인트 6개 반영 (출처 각주·작동 증거·안정성·데이터 갱신주기·Phase 2 KPI·페르소나)
 - [ ] 문장 리듬, 페이지 레이아웃, 이미지 배치
-- [ ] Cowork에서 HWP/PDF 변환 (hwpx-studio 활용)
+- [ ] Cowork에서 HWP/PDF 변환 (플랜 `docs/submission/hwp_conversion_plan.md`)
 
 ### D12 — 2026-05-02 (금) · 시연 영상 최종
 - [ ] 자막(영어/한국어 병기)
@@ -112,9 +114,11 @@
 - [ ] GitHub README 정비 (공모전 접속자 대상)
 
 ### D14 — 2026-05-04 (일) · 최종 검토
-- [ ] 제안서 PDF 10MB 이하 압축
+- [ ] 제안서 PDF 10MB 이하 압축 (절차 `docs/submission/hwp_conversion_plan.md` §1 Step 3)
+- [ ] 접수 페이지 로그인 → 실제 양식 필드 검증 → `docs/submission/checklist.md` §2 갱신
 - [ ] 접수 양식 모든 필드 작성 준비
 - [ ] 팀원 정보 기입 (1인 참가, 본인만)
+- [ ] GitHub 저장소 Private → Public 전환 + README 정비
 
 ### D15 — 2026-05-05 (월) · 제출 리허설
 - [ ] 한국관광콘텐츠랩 로그인 확인

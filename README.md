@@ -108,6 +108,21 @@ npm run dev
 - **v1.0 (Post-competition)**: 라이브 AR 모드, B2B 식당 대시보드
 - **v2.0**: 전국 확장, 사용자 크라우드 가격 제보
 
+## 📚 Documentation
+
+| Document | Purpose |
+|---|---|
+| [CONTEXT.md](./CONTEXT.md) | Project overview (single-page onboarding) |
+| [ROADMAP.md](./ROADMAP.md) | D1~D16 daily checklist |
+| [DECISIONS.md](./DECISIONS.md) | Architecture decision records (ADR-001~006) |
+| [docs/proposal.md](./docs/proposal.md) | Competition submission proposal (5p) |
+| [docs/pitch_deck.md](./docs/pitch_deck.md) | 90s demo video shot list |
+| [docs/user_stories.md](./docs/user_stories.md) | 4 user personas |
+| [docs/review_proposal_scorecard.md](./docs/review_proposal_scorecard.md) | Self-scoring against 100pt rubric |
+| [docs/submission/checklist.md](./docs/submission/checklist.md) | Submission form fields & deadlines |
+| [docs/submission/hwp_conversion_plan.md](./docs/submission/hwp_conversion_plan.md) | MD→DOCX→HWP/PDF pipeline |
+| [docs/research/](./docs/research/) | 6 research reports (market, tech, data, spec) |
+
 ## 🎖️ Competition
 
 2026 관광데이터 활용 공모전 ① 웹·앱 개발 부문 제출 프로젝트
