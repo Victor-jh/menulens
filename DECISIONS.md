@@ -5,6 +5,23 @@
 
 ---
 
+## ADR-008: 2026-04-25 · 임베딩 프로바이더 — Gemini text-embedding-004 (768차원)
+**결정**: D3 한식 800선 임베딩은 Google **`text-embedding-004` (768차원)** 사용. OpenAI `text-embedding-3-small` (1536) 채택 안 함.
+**배경**: D3 재개 시 JH는 ANTHROPIC·GEMINI·SUPABASE 키만 보유, OpenAI 미가입. 기존 스캐폴드(`9303d65`)는 OpenAI 1536차원 전제.
+**이유**:
+- JH가 이미 GEMINI 키 보유 → 신규 OpenAI 가입·$5 선결제·카드 등록 회피
+- 800건 규모에서 768 vs 1536 차원 HNSW 검색 latency 차이 무시 가능(<50ms 양쪽 모두)
+- Gemini 임베딩 무료 할당(일 15K req, 분당 1,500 req) → 800건 8배치 1분 이내 완료
+- `task_type` 파라미터 지원: 적재는 `RETRIEVAL_DOCUMENT`, 쿼리는 `RETRIEVAL_QUERY`로 분리 → 동일 텍스트라도 용도별 최적화 임베딩
+- MTEB 한국어 벤치 격차 근소(62.3 vs 66.3), 공식 번역 DB 800건 검색 정확도에서 체감 무의미
+**취소 가능성**: Phase 2 scale-up(사용자 크라우드 제보로 메뉴 DB 확장) 시 OpenAI 또는 `text-embedding-3-large` 재평가. 전환 비용:
+- 스키마: `embedding_ko VECTOR(768)` → `VECTOR(1536)` ALTER + HNSW 재빌드
+- 재임베딩: 800건 $0.0005, 확장 후 규모에 따라 상향
+- 코드: `embed_text()` 함수 1곳 교체
+**스키마 영향**: `backend/db/001_hansik_800.sql` `VECTOR(1536)` → `VECTOR(768)` 수정 필수 (D3 첫 Supabase 생성 전이라 마이그레이션 없음).
+
+---
+
 ## ADR-007: 2026-04-23 · D4 Canary 기대값을 🔴로 정정 (ADR-002 임계값 유지)
 **결정**: ROADMAP D4 완료기준 "김치찌개 12000원 → 🟡"을 **🔴로 수정**. ADR-002 임계값(🟢<110%, 🟡 110~130%, 🔴>130%)은 그대로 유지.
 **배경**: Cowork D3 세션에서 ROADMAP.md:47과 ADR-002 임계값 간 모순 발견. 참가격(price.go.kr 2025-12) 김치찌개 평균 8,577원 기준, 12,000원 = 139.9% → 130% 초과 → 🔴가 정합.

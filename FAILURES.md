@@ -17,7 +17,7 @@
 
 ---
 
-## 2026-04-23 · D3 파이프라인 실행 블로커 (진짜 800선 미수급)
+## 2026-04-23 · D3 파이프라인 실행 블로커 → 2026-04-25 해소
 **상황**: D3 ROADMAP = 800선 CSV 다운로드 → 정규화 → pgvector 적재 → "김치찌개" 캐너리
 **문제**: 선행 리소스 전부 미구비
 - ❌ `.env` 없음 (GEMINI/OPENAI/SUPABASE 키 미설정)
@@ -31,17 +31,20 @@
 **해결/우회**:
 - 스캐폴드 4개 생성: `backend/db/001_hansik_800.sql`, `backend/scripts/load_hansik_800.py`, `backend/agents/dish_profiler.py` (D3 RAG 로직 구현), 합성 CSV
 - 키·실CSV·Supabase 확보 즉시 `python -m backend.scripts.load_hansik_800` 한 줄로 실행 가능
-**교훈**: D1·D2 선행 조건(계정·키·CSV) 전제 체크 없이 D3 실행 코드부터 짜면 dry-run에서 멈춤. 공공데이터포털 활용신청은 승인까지 시간차가 있으므로 D0에 제출해야 한다. 다음 맥북 세션 첫 작업: **키 3개 + CSV + Supabase 프로젝트 생성 먼저**.
+**교훈**:
+- **15129784는 fileData 유형**: 공공데이터포털 로그인만 하면 즉시 다운로드 가능, 활용신청 승인 대기 없음. (OpenAPI인 15101578 TourAPI와 혼동 금지)
+- 다만 `.env` 키·Supabase 프로젝트 생성은 여전히 선행되어야 함 — 다음 맥북 세션 첫 작업은 이 두 가지
+- ADR-008 채택으로 OpenAI 키 의존 제거: Gemini 키만 보유해도 D3 완전 실행 가능
 
-### D3 재개 조건 체크리스트 (맥북이 다음에 볼 것)
-- [ ] 공공데이터포털 15129784 활용신청 승인 → CSV 다운로드 → `backend/data/hansik_800.csv` 덮어쓰기
-- [ ] 실 CSV `head -1` 결과 확인 → 컬럼명이 spec §1.2와 다르면 `backend/data/hansik_800_column_map.json` 작성
-- [ ] Supabase 프로젝트 생성 → `backend/db/001_hansik_800.sql` SQL Editor 실행
-- [ ] `.env` 에 `OPENAI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` 기입
-- [ ] `.venv/bin/pip install -r backend/requirements.txt`
-- [ ] `python -m backend.scripts.load_hansik_800 --dry-run` → 정상
-- [ ] `python -m backend.scripts.load_hansik_800` → 캐너리 PASS
-- [ ] 실 컬럼명으로 `docs/research/05_한식800선_정제스펙.md §1.2` Cowork에게 갱신 요청
+### 2026-04-25 블로커 해소 현황
+- [x] `backend/data/hansik_800.csv` — Cowork가 xlsx → CSV 정제 후 커밋(a078944). 800행 × 13열 UTF-8-sig
+- [x] `backend/data/hansik_800_column_map.json` — Cowork 작성 (canonical ↔ 원본 xlsx 컬럼 역매핑)
+- [x] `.env` — ANTHROPIC/GEMINI/SUPABASE_URL/ANON/SERVICE 5종 입력 완료
+- [x] ADR-008 결정 (Gemini text-embedding-004, 768d) — OpenAI 키 불필요
+- [x] SQL·로더·dish_profiler 실 컬럼 반영 재작성 완료
+- [x] 실 800행 dry-run 캐너리(source_no=261 김치찌개) PASS: tags={pork,seafood,soy}, spicy=2
+- [ ] Supabase SQL Editor에서 `backend/db/001_hansik_800.sql` 실행 (사용자 작업)
+- [ ] `python -m backend.scripts.load_hansik_800` 라이브 실행 → 실 캐너리 검증
 
 ---
 
