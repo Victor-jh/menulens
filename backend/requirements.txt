@@ -8,10 +8,11 @@ httpx==0.27.2
 # AI providers
 anthropic==0.39.0
 google-generativeai==0.8.3
-openai==1.54.0  # for embeddings only
+# openai 미사용 (ADR-008: Gemini text-embedding-004 채택) — 필요 시 재추가
 
 # Data / DB
-supabase==2.9.1
+# supabase >=2.15: 새 API key 포맷 (sb_publishable_/sb_secret_, 2025-10~) 호환
+supabase==2.29.0
 pgvector==0.3.6
 pandas==2.2.3
 
