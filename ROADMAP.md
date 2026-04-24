@@ -52,13 +52,15 @@
 - **변형 캐너리**: 김치찌개백반/물냉면/돌솥비빔밥/짜장면 모두 올바른 8품목으로 매칭
 - **실 소요**: D3와 당일 병합 진행 — 1시간
 
-### D5 — 2026-04-25 (금) · 알레르기·할랄·비건 분류
-- [ ] 재료 사전 구축 (돼지·소·닭·해물·계란·유제품·글루텐·견과 등 14종)
-- [ ] Dish Profiler에 분류 프롬프트 추가 (Claude structured output)
-- [ ] 사용자 프로필 설정 로직 (JSON 기반, 온보딩 1회)
-- [ ] 색깔 결정 트리: 프로필 × 알레르기 × 가격 → 🟢🟡🔴
-- **완료 기준**: 무슬림 프로필 + 돼지고기 메뉴 → 🔴 자동 판정
-- **실 소요 예상**: 2시간
+### D5 — 2026-04-25 (토, D3·D4와 당일 진행) · 알레르기·할랄·비건 분류 ✅ 완료
+- [x] 재료 사전 14종 (D3 로더에서 이미 hansik_800 allergy_tags 생성 완료)
+- [ ] Dish Profiler에 Claude structured output 프롬프트 — Phase 2 연기 (800선 매칭으로 Phase 1 충분)
+- [x] UserProfile (language/allergies/religion/diet) — `backend/agents/verdict.py`
+- [x] 색깔 결정 트리: profile × allergy × religion × diet × price → 🟢🟡🔴 (`backend/agents/verdict.py`)
+- [x] FastAPI 통합 — `/analyze` 엔드포인트에 profile Form 필드 추가
+- **완료 기준**: 무슬림 + 김치찌개 → 🔴 religion_conflict ✅ (6/6 canary PASS)
+- **추가 검증**: 비건×물냉면 → 🔴 diet_hard, 알러지×삼계탕 → 🔴 allergen_conflict
+- **실 소요**: 1.5시간 (결정 트리 + E2E 통합)
 
 ### D6 — 2026-04-26 (토) · 통합 백엔드 + TTS
 - [ ] FastAPI `main.py` 작성, 3개 에이전트 오케스트레이션
