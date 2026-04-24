@@ -62,14 +62,14 @@
 - **추가 검증**: 비건×물냉면 → 🔴 diet_hard, 알러지×삼계탕 → 🔴 allergen_conflict
 - **실 소요**: 1.5시간 (결정 트리 + E2E 통합)
 
-### D6 — 2026-04-26 (토) · 통합 백엔드 + TTS
-- [ ] FastAPI `main.py` 작성, 3개 에이전트 오케스트레이션
-- [ ] `POST /analyze` 엔드포인트 (이미지 업로드 + 프로필)
-- [ ] Google Cloud TTS 연동, 한국어 주문 음성 생성
-- [ ] 응답 캐싱 (같은 메뉴 재요청 시 TTS 재생성 방지)
-- [ ] Postman으로 end-to-end 테스트
-- **완료 기준**: 이미지 업로드 → 5초 이내 JSON 응답 (메뉴 리스트 + 색깔 + TTS URL)
-- **실 소요 예상**: 3~4시간
+### D6 — 2026-04-25 (토, D5와 당일) · 통합 백엔드 + TTS ✅ 완료
+- [x] FastAPI `main.py` 오케스트레이션 (D5에서 dish+price+verdict 병렬 완료)
+- [x] `POST /analyze` 엔드포인트 (이미지 + language/allergies/religion/diet Form)
+- [x] **TTS 연동 — Gemini `gemini-2.5-flash-preview-tts`로 결정** (Google Cloud TTS 서비스계정 회피, ADR 후속 추가 예정)
+- [x] 응답 캐싱 (Supabase `tts_cache` 테이블 + sha256 키, 미생성 시 graceful degrade)
+- [ ] Postman end-to-end (실 이미지 미수급으로 보류, `_analyze_one` 단위 E2E는 통과)
+- **완료 기준**: `_analyze_one` 호출 시 dish + price + verdict + TTS WAV(base64) 응답 ✅
+- **추가 단계**: 사용자가 Supabase에서 `backend/db/002_tts_cache.sql` 1회 실행 시 캐시 자동 활성
 
 ### D7 — 2026-04-27 (일) · 🚨 HARD GATE + 프론트엔드 1차
 - [ ] Next.js 프로젝트 셋업 (`frontend/`)

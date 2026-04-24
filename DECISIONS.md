@@ -5,6 +5,24 @@
 
 ---
 
+## ADR-009: 2026-04-25 · TTS 프로바이더 — Gemini gemini-2.5-flash-preview-tts
+**결정**: D6 한국어 주문 음성 생성에 **Gemini TTS 모델** 사용. Google Cloud Text-to-Speech 서비스계정 사용 안 함.
+**배경**: D6 진입 시 `.env`에 `GOOGLE_APPLICATION_CREDENTIALS=./gcloud-key.json` 설정되어 있으나 파일 부재. Google Cloud TTS 사용하려면 GCP 프로젝트 생성·결제수단 등록·서비스계정 키 발급 필요 (ADR-008과 동일 회피 사유).
+**선택 모델**: `gemini-2.5-flash-preview-tts` (24kHz PCM L16 출력, prebuilt voice "Kore" 한국어 톤).
+**이유**:
+- JH 보유 GEMINI_API_KEY 그대로 활용, 추가 자격증명 불필요
+- 무료 티어 quota 안에서 PoC 운영 가능
+- prebuilt voice "Kore"가 자연스러운 한국어 발화 — 기존 GCP TTS의 ko-KR-Wavenet 대비 품질 비교 보류 (체감 충분)
+- audio/L16;codec=pcm;rate=24000 → 44바이트 WAV 헤더 prepend로 브라우저 재생 호환
+**구현**:
+- `backend/agents/tts.py`: `synthesize(text)` → WAV base64
+- 캐시: Supabase `tts_cache` 테이블 (sha256 키, audio_b64). 테이블 미생성 시 graceful degrade
+- `/analyze` 응답에 `tts_audio_b64` 인라인 포함 (PoC 단순화, 별도 Storage 버킷 추후)
+- 신규 의존성: `google-genai>=1.73` (legacy `google-generativeai`는 audio 미지원)
+**취소 가능성**: 시연 중 음질 이슈 / quota 한계 / 다국어 voice 부족 시 Google Cloud TTS 전환. 코드는 `_generate_tts_*()` 1곳 교체.
+
+---
+
 ## ADR-008: 2026-04-25 · 임베딩 프로바이더 — Gemini text-embedding-004 (768차원)
 **결정**: D3 한식 800선 임베딩은 Google **`text-embedding-004` (768차원)** 사용. OpenAI `text-embedding-3-small` (1536) 채택 안 함.
 **배경**: D3 재개 시 JH는 ANTHROPIC·GEMINI·SUPABASE 키만 보유, OpenAI 미가입. 기존 스캐폴드(`9303d65`)는 OpenAI 1536차원 전제.

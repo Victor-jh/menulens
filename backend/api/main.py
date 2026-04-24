@@ -32,6 +32,7 @@ from backend.agents.menu_reader import read_menu, MenuReadResult
 from backend.agents.dish_profiler import profile_dish, DishProfile
 from backend.agents.price_sentinel import judge_price, PriceJudgment
 from backend.agents.verdict import decide, UserProfile, VerdictResult
+from backend.agents.tts import synthesize, order_phrase, TTSResult
 
 
 app = FastAPI(
@@ -57,6 +58,10 @@ class AnalyzedItem(BaseModel):
     color: str  # 🟢 | 🟡 | 🔴 | ⚪
     reasons: list[str] = []
     trigger_flags: list[str] = []
+    order_phrase: Optional[str] = None
+    tts_audio_b64: Optional[str] = None
+    tts_audio_mime: Optional[str] = None
+    tts_cached: bool = False
     dish_profile: Optional[DishProfile] = None
     price_judgment: Optional[PriceJudgment] = None
 
@@ -92,17 +97,39 @@ async def _analyze_one(
     name: str,
     price: Optional[int],
     profile: UserProfile,
-) -> tuple[DishProfile, Optional[PriceJudgment], VerdictResult]:
-    """한 메뉴에 대해 dish_profiler + price_sentinel + verdict 병렬 실행."""
+    include_tts: bool = True,
+) -> tuple[DishProfile, Optional[PriceJudgment], VerdictResult, Optional[TTSResult]]:
+    """한 메뉴에 대해 dish_profiler + price_sentinel + TTS + verdict 병렬 실행."""
     dish_task = profile_dish(name, user_language=profile.language, user_allergies=profile.allergies)
     price_task = judge_price(name, price) if price is not None else None
+    phrase = order_phrase(name)
+    tts_task = synthesize(phrase) if include_tts else None
+
+    tasks = [dish_task]
     if price_task:
-        dish_profile, price_judgment = await asyncio.gather(dish_task, price_task)
-    else:
-        dish_profile = await dish_task
-        price_judgment = None
+        tasks.append(price_task)
+    if tts_task:
+        tasks.append(tts_task)
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    dish_profile = results[0] if not isinstance(results[0], Exception) else None
+    idx = 1
+    price_judgment = None
+    if price_task:
+        price_judgment = results[idx] if not isinstance(results[idx], Exception) else None
+        idx += 1
+    tts_result: Optional[TTSResult] = None
+    if tts_task:
+        tts_result = results[idx] if not isinstance(results[idx], Exception) else None
+
+    if dish_profile is None:
+        # 메뉴 처리 실패 — 최소 응답
+        from backend.agents.dish_profiler import DishProfile as DP
+        dish_profile = DP(name_ko=name, name_translated=name, description="(profile failed)", source="unknown")
+
     verdict = decide(dish_profile, price_judgment, profile)
-    return dish_profile, price_judgment, verdict
+    return dish_profile, price_judgment, verdict, tts_result
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
@@ -136,14 +163,14 @@ async def analyze_menu_endpoint(
     except RuntimeError as e:
         raise HTTPException(500, f"Menu reading failed: {e}")
 
-    # 모든 메뉴를 병렬 처리 (dish + price + verdict)
+    # 모든 메뉴를 병렬 처리 (dish + price + tts + verdict)
     results = await asyncio.gather(*[
         _analyze_one(item.name, item.price, profile)
         for item in menu_result.items
     ])
 
     analyzed_items = []
-    for item, (dish_profile, price_judgment, verdict) in zip(menu_result.items, results):
+    for item, (dish_profile, price_judgment, verdict, tts) in zip(menu_result.items, results):
         analyzed_items.append(AnalyzedItem(
             name=item.name,
             translated=dish_profile.name_translated,
@@ -152,6 +179,10 @@ async def analyze_menu_endpoint(
             color=verdict.color.value,
             reasons=verdict.reasons,
             trigger_flags=verdict.trigger_flags,
+            order_phrase=tts.text if tts else None,
+            tts_audio_b64=tts.audio_b64 if tts else None,
+            tts_audio_mime=tts.audio_mime if tts else None,
+            tts_cached=tts.cached if tts else False,
             dish_profile=dish_profile,
             price_judgment=price_judgment,
         ))

@@ -47,6 +47,7 @@ backend/data/hansik_800_raw.*
 tests/sample_menus/*.jpg
 tests/sample_menus/*.png
 !tests/sample_menus/.gitkeep
+tests/out/
 
 # Logs
 *.log
