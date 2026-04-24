@@ -16,11 +16,11 @@ Before taking any action, read these files:
 4. `FAILURES.md` — Past mistakes to avoid
 
 ### Task-specific additional reading
-- **D3 RAG work (hansik 800 ingestion)**: `docs/research/05_한식800선_정제스펙.md` — schema, allergy mapping, embedding rules
-- **D10 proposal finalization**: `docs/review_proposal_scorecard.md` — self-score baseline and 6 improvement points
-- **D11 HWP/PDF conversion**: `docs/submission/hwp_conversion_plan.md` — pandoc + reference.docx pipeline
-- **D14~D16 submission**: `docs/submission/checklist.md` — form fields, backup policy, fail-safe plans
-- **Video script references**: `docs/pitch_deck.md` and `docs/user_stories.md`
+- **D3 RAG (완료)**: `docs/research/05_한식800선_정제스펙.md` — schema, allergy mapping, embedding rules
+- **D10 proposal 작성** (현 세션): `docs/review_proposal_scorecard.md` — self-score baseline + 개선포인트 6개
+- **D11 HWP 변환** (Cowork): `docs/submission/hwp_conversion_plan.md` — 한컴오피스 원본 양식 복붙 후 PDF
+- **D14~D16 제출**: `docs/submission/checklist.md` — form fields, backup policy
+- **영상 스크립트** (현 세션 작성 → Cowork 녹화·업로드): `docs/pitch_deck.md`, `docs/user_stories.md`
 
 ## 3. Coding Principles
 - **Language**: Python 3.11+ for backend, TypeScript for frontend
@@ -122,7 +122,12 @@ Only add new packages after writing a justification in DECISIONS.md.
 ## 14. User Context
 - Solo developer (Victor-jh / JH)
 - Based in Dongtan, Korea
-- Dual environment: MacBook (Claude Code) + Windows (Cowork)
+- **Primary environment: MacBook Claude Code (this session)** — 기본 모든 작업 여기서
+- Cowork(Windows)는 이 세션이 네이티브로 할 수 없는 3가지 전용 fallback:
+  1. **한컴오피스 HWP 편집** (공식 양식 수정 금지 규정 때문에 LibreOffice 대체 불가)
+  2. **YouTube 업로드** (OAuth 로그인)
+  3. **대형 영상 편집 GUI** (OBS/Premiere 인터랙티브 작업)
+- 그 외(Supabase·Git·Vercel·리서치·문서·코드·Chrome 조작 등)는 전부 현 세션에서 처리
 - KCUP employee, transitioning to 진흥원 (confidential)
 - Has pattern of starting but not finishing — your job is to prevent the 13th instance
 

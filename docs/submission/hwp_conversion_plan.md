@@ -4,7 +4,7 @@
 > **입력**: `docs/proposal.md` (Markdown 초안, 최종 퇴고본)
 > **양식**: `docs/submission/official/제안서_양식_원본.hwp` (공식 양식, **수정 금지 규정 적용**)
 > **출력**: `docs/submission/final/MenuLens_제안서_최종.pdf` (제출용)
-> **담당**: Cowork
+> **담당**: Cowork (한컴오피스 설치 기기 필수 — AGENTS.md §14 fallback 트리거)
 > **목표 소요**: 1.5~2시간
 
 ---
