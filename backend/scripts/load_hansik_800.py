@@ -200,26 +200,29 @@ def ensure_canonical_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # --- Gemini embedding (ADR-008) -------------------------------------------
+# Gemini embedding model (ADR-008, v1 API 사용)
+# 2026-04-25: text-embedding-004 → gemini-embedding-001 로 리브랜드됨 (동일 품질, 차원 유연 선택 가능)
+GEMINI_EMBED_MODEL = "models/gemini-embedding-001"
+GEMINI_EMBED_DIM = 768  # 선택지: 768, 1536, 3072 (default). SQL 스키마 VECTOR(768) 정합
+
+
 async def embed_batch_gemini(texts: list[str], task_type: str = "RETRIEVAL_DOCUMENT") -> list[list[float]]:
-    """Google text-embedding-004 (768 dim). Free tier: 1500 req/min, 15K/day."""
+    """Gemini gemini-embedding-001 (768 dim, reduced from 3072). Free tier: 1500 req/min."""
     import google.generativeai as genai
-    out: list[list[float]] = []
-    # Gemini embedding API는 request당 1 텍스트 — 동시 호출로 처리
     async def _one(t: str) -> list[float]:
         r = await asyncio.to_thread(
             genai.embed_content,
-            model="models/text-embedding-004",
+            model=GEMINI_EMBED_MODEL,
             content=t,
             task_type=task_type,
+            output_dimensionality=GEMINI_EMBED_DIM,
         )
         return r["embedding"]
-    # concurrency 10 (무료 rate limit 여유)
     sem = asyncio.Semaphore(10)
     async def _guarded(t: str) -> list[float]:
         async with sem:
             return await _one(t)
-    out = await asyncio.gather(*[_guarded(t) for t in texts])
-    return out
+    return await asyncio.gather(*[_guarded(t) for t in texts])
 
 
 # --- upsert ---------------------------------------------------------------
@@ -238,12 +241,12 @@ def upsert_rows(rows: list[dict], supabase) -> int:
 async def canary_query(supabase) -> bool:
     print("\n🎯 Canary: '김치찌개' → Kimchi Stew (source_no=261)")
     import google.generativeai as genai
-    q = "김치찌개"
     q_emb_resp = await asyncio.to_thread(
         genai.embed_content,
-        model="models/text-embedding-004",
-        content=q,
+        model=GEMINI_EMBED_MODEL,
+        content="김치찌개",
         task_type="RETRIEVAL_QUERY",
+        output_dimensionality=GEMINI_EMBED_DIM,
     )
     q_emb = q_emb_resp["embedding"]
     res = supabase.rpc(
@@ -379,7 +382,7 @@ async def main(csv_override: Optional[str], limit: Optional[int], dry_run: bool)
     genai.configure(api_key=gemini_key)
     supabase = create_client(sb_url, sb_key)
 
-    print(f"🔗 Embedding {len(rows)} texts via Gemini text-embedding-004 (768d)")
+    print(f"🔗 Embedding {len(rows)} texts via Gemini {GEMINI_EMBED_MODEL} ({GEMINI_EMBED_DIM}d)")
     BATCH = 100
     for i in range(0, len(rows), BATCH):
         chunk = rows[i : i + BATCH]

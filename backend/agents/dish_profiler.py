@@ -16,9 +16,15 @@ from __future__ import annotations
 
 import asyncio
 import os
+from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_REPO_ROOT / ".env")
+load_dotenv(_REPO_ROOT / "backend" / ".env")
 
 try:
     import google.generativeai as genai
@@ -73,20 +79,26 @@ def _get_clients():
         raise RuntimeError("google-generativeai / supabase 패키지 미설치. pip install -r backend/requirements.txt")
     gemini_key = os.getenv("GEMINI_API_KEY")
     sb_url = os.getenv("SUPABASE_URL")
-    sb_key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_SERVICE_KEY")
+    # SERVICE_KEY 우선 (RLS 우회, 백엔드 전용). ANON은 RLS 정책 없으면 빈 결과 반환.
+    sb_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY")
     if not (gemini_key and sb_url and sb_key):
         raise RuntimeError("GEMINI_API_KEY / SUPABASE_URL / SUPABASE_*_KEY 환경변수 필요")
     genai.configure(api_key=gemini_key)
     return create_client(sb_url, sb_key)
 
 
+GEMINI_EMBED_MODEL = "models/gemini-embedding-001"
+GEMINI_EMBED_DIM = 768  # SQL VECTOR(768) 정합 (ADR-008)
+
+
 async def _embed_query(text: str) -> list[float]:
-    """Gemini text-embedding-004, task_type=RETRIEVAL_QUERY (ADR-008)."""
+    """Gemini gemini-embedding-001, 768d, RETRIEVAL_QUERY (ADR-008)."""
     r = await asyncio.to_thread(
         genai.embed_content,
-        model="models/text-embedding-004",
+        model=GEMINI_EMBED_MODEL,
         content=text,
         task_type="RETRIEVAL_QUERY",
+        output_dimensionality=GEMINI_EMBED_DIM,
     )
     return r["embedding"]
 
