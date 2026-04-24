@@ -1,0 +1,36 @@
+{
+  "source": {
+    "provider": "한국소비자원",
+    "service": "참가격 (외식비)",
+    "url": "https://www.price.go.kr/tprice/portal/servicepriceinfo/dineoutprice/",
+    "region": "서울",
+    "snapshot_month": "2025-12",
+    "notes": "월별 평균가 기준. Phase 2에 월간 자동 갱신 job 추가 예정."
+  },
+  "currency": "KRW",
+  "thresholds": {
+    "fair_max_ratio": 1.10,
+    "caution_max_ratio": 1.30,
+    "description": "ratio = listed / benchmark. <=1.10 🟢, <=1.30 🟡, >1.30 🔴 (ADR-002 / ADR-007)"
+  },
+  "items": [
+    {"key": "김밥", "name_en": "Gimbap", "avg_price": 3700, "unit": "1인분"},
+    {"key": "칼국수", "name_en": "Kal-guksu", "avg_price": 9846, "unit": "1인분"},
+    {"key": "김치찌개", "name_en": "Kimchi Stew", "avg_price": 8577, "unit": "김치찌개백반 1인분"},
+    {"key": "삼계탕", "name_en": "Samgyetang", "avg_price": 18000, "unit": "1인분"},
+    {"key": "냉면", "name_en": "Naengmyeon", "avg_price": 12100, "unit": "물냉면 1인분"},
+    {"key": "삼겹살", "name_en": "Samgyeopsal", "avg_price": 21500, "unit": "200g"},
+    {"key": "비빔밥", "name_en": "Bibimbap", "avg_price": 11200, "unit": "1인분"},
+    {"key": "자장면", "name_en": "Jajangmyeon", "avg_price": 7692, "unit": "1인분"}
+  ],
+  "aliases": {
+    "김밥": ["김밥", "김밥세트"],
+    "칼국수": ["칼국수", "칼국수면", "바지락칼국수", "해물칼국수", "사골칼국수"],
+    "김치찌개": ["김치찌개", "김치찌개백반", "김치찌개정식", "묵은지찌개", "참치김치찌개"],
+    "삼계탕": ["삼계탕", "반계탕", "전복삼계탕"],
+    "냉면": ["냉면", "물냉면", "비빔냉면", "평양냉면", "함흥냉면"],
+    "삼겹살": ["삼겹살", "생삼겹살", "오겹살", "목살"],
+    "비빔밥": ["비빔밥", "돌솥비빔밥", "전주비빔밥", "육회비빔밥"],
+    "자장면": ["자장면", "짜장면", "간자장", "삼선자장", "쟁반자장"]
+  }
+}

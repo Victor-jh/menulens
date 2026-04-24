@@ -42,14 +42,15 @@
 - **완료 기준**: 쿼리 메뉴명 입력 시 표준 번역 + romanization + 재료·알레르기·할랄·매운맛 반환 ✅
 - **실 소요**: 2026-04-23 스캐폴드 + dry-run, 2026-04-25 라이브 적재·캐너리
 
-### D4 — 2026-04-24 (목) · 가격 Sentinel
-- [ ] 한국소비자원 참가격 8품목 데이터 수집 (price.go.kr 수동 수집 or 스크래핑)
-- [ ] `backend/data/consumer_price.json` 생성
-- [ ] `backend/agents/price_sentinel.py` 구현
-- [ ] 메뉴명 매칭 로직 (fuzzy match + embedding fallback)
-- [ ] 🟢 <110%, 🟡 110~130%, 🔴 >130% 판정 로직 (ADR-002)
-- **완료 기준**: "김치찌개 12000원" 입력 → 🔴 판정 + 근거 출력 (참가격 8,577원 대비 140% → 관광지 바가지 의심)
-- **실 소요 예상**: 2시간
+### D4 — 2026-04-25 (토, 당겨서 D3 연속 진행) · 가격 Sentinel ✅ 완료
+- [x] 한국소비자원 참가격 8품목 (서울 2025-12 스냅샷) — `backend/data/consumer_price.json`
+- [x] `backend/data/consumer_price.json` 생성 (items + aliases + thresholds + source 메타)
+- [x] `backend/agents/price_sentinel.py` 구현 (JSON 기반, ADR-007 임계값)
+- [x] 매칭 cascade: exact → alias → rapidfuzz(token_set_ratio ≥80) → hansik_800 embedding fallback
+- [x] 🟢 <110%, 🟡 110~130%, 🔴 >130% 판정 로직 (ADR-002 / ADR-007)
+- **완료 기준**: "김치찌개 12000원" → 🔴 PASS (140% 참가격 8,577원 대비)
+- **변형 캐너리**: 김치찌개백반/물냉면/돌솥비빔밥/짜장면 모두 올바른 8품목으로 매칭
+- **실 소요**: D3와 당일 병합 진행 — 1시간
 
 ### D5 — 2026-04-25 (금) · 알레르기·할랄·비건 분류
 - [ ] 재료 사전 구축 (돼지·소·닭·해물·계란·유제품·글루텐·견과 등 14종)

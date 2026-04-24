@@ -15,6 +15,7 @@ google-generativeai==0.8.3
 supabase==2.29.0
 pgvector==0.3.6
 pandas==2.2.3
+rapidfuzz==3.10.1  # price_sentinel fuzzy 매칭 (D4)
 
 # Image processing
 Pillow==11.0.0
