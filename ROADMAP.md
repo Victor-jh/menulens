@@ -71,16 +71,18 @@
 - **완료 기준**: `_analyze_one` 호출 시 dish + price + verdict + TTS WAV(base64) 응답 ✅
 - **추가 단계**: 사용자가 Supabase에서 `backend/db/002_tts_cache.sql` 1회 실행 시 캐시 자동 활성
 
-### D7 — 2026-04-27 (일) · 🚨 HARD GATE + 프론트엔드 1차
-- [ ] Next.js 프로젝트 셋업 (`frontend/`)
-- [ ] 최소 UI: 사진 업로드 → 결과 화면 (색깔 박스 오버레이)
-- [ ] 탭 한 번 → TTS 오디오 재생
-- [ ] 온보딩 화면 (알레르기·언어 설정)
-- [ ] Vercel에 임시 배포, 모바일 브라우저 테스트
-- **🚨 Hard Gate 판정**: "실제 메뉴판 사진 → 색깔 3종 표시 + TTS 재생"이 작동하는가?
+### D7 — 2026-04-25~27 · 🚨 HARD GATE + 프론트엔드 1차
+- [x] Next.js 16 + Turbopack + React 19 + Tailwind 4 셋업 (`frontend/`)
+- [x] 최소 UI: 온보딩(알레르기 14종 토글·종교·식단·언어) → 업로드(camera/file) → 결과 (색깔 카드)
+- [x] 탭 한 번 → TTS 오디오 재생 (`<audio ref>` + `play()`, base64 data URL)
+- [x] 온보딩 화면 (알레르기·언어·종교·식단)
+- [x] 로컬 dev 서버 양쪽 가동 검증 (Next :3001 + FastAPI :8000)
+- [x] Chrome MCP로 onboarding → upload phase 전환 시각 확인
+- [ ] Vercel 임시 배포 + 모바일 브라우저 테스트 (실 메뉴판 사진 입수 시 진행)
+- **🚨 Hard Gate 판정 (실 사진 입수 시)**: "실제 메뉴판 사진 → 색깔 3종 표시 + TTS 재생"이 작동하는가?
   - ✅ 작동 → Week 2 계속
   - ❌ 미작동 → **이 자리에서 포기 결정**. 제안서만 제출하거나 불참.
-- **실 소요 예상**: 4~5시간
+- **실 소요**: UI 1.5시간, Vercel 배포·실 사진 검증은 별도
 
 ---
 
