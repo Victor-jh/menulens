@@ -95,12 +95,30 @@ npx vercel --prod           # 프로덕션
 
 ## 4. CORS 설정
 
-`backend/api/main.py`의 CORS:
-```python
-allow_origins=["*"],  # PoC only
+`backend/api/main.py`의 CORS는 `CORS_ORIGINS` 환경변수 기반 화이트리스트 + glob wildcard 지원 (D8 적용):
+
+```
+CORS_ORIGINS=http://localhost:3000,
+             https://menulens.vercel.app,
+             https://menulens-*.vercel.app,
+             https://menulens-*-victor-jh.vercel.app,
+             https://menulens-*-victor-jh-projects.vercel.app
 ```
 
-프로덕션 전환 시 `https://menulens-*.vercel.app`로 제한 필요 (D8 TODO).
+- `*`이 포함된 항목은 `allow_origin_regex`로 컴파일됨 (각 `*`는 `[^.]+`로 한 segment만 매칭).
+- 정확 일치 origin은 `allow_origins` 리스트로, glob은 `allow_origin_regex`로 분리되어 처리.
+- `*` 단독("*")은 별도로 인식하지 않으며, credentials 허용 토글에만 영향.
+
+검증 (D8 canary):
+```
+http://localhost:3000                                   → 200
+https://menulens.vercel.app                             → 200
+https://menulens-abc123.vercel.app                      → 200
+https://menulens-git-main-victor-jh.vercel.app          → 200
+https://evil.com                                        → 400 (block)
+```
+
+Render 배포 후 실제 Vercel preview URL 패턴이 위 4개 외라면 .env에 추가 후 Render 환경변수 갱신.
 
 ---
 

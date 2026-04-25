@@ -73,16 +73,34 @@ ALLOWED_ALLERGENS = {
 _DISH_NAME_OK = re.compile(r"^[\w가-힣一-龥ぁ-んァ-ン0-9\s\-·()()&,.\[\]]+$")
 
 
-# --- CORS (P0.1 audit) -----------------------------------------------------
-def _cors_origins() -> list[str]:
+# --- CORS (P0.1 audit + D8 wildcard support) ------------------------------
+def _cors_origins_config() -> dict:
     """
-    CORS_ORIGINS env: comma-separated whitelist.
-    Default: only localhost:3000 (dev). In production, set explicitly.
-    "*" still allowed but warns (PoC escape hatch).
+    CORS_ORIGINS env: comma-separated whitelist. Items containing '*' are
+    treated as glob patterns and compiled into allow_origin_regex.
+    Examples:
+        http://localhost:3000
+        https://menulens.vercel.app                ← Vercel production
+        https://menulens-*.vercel.app              ← Vercel preview deployments
+        https://menulens-*-victor-jh.vercel.app    ← branch previews
+    Each '*' matches one DNS label segment ([^.]+), not arbitrary text.
     """
     raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
-    origins = [o.strip() for o in raw.split(",") if o.strip()]
-    return origins or ["http://localhost:3000"]
+    parts = [o.strip() for o in raw.split(",") if o.strip()]
+    exact: list[str] = []
+    patterns: list[str] = []
+    for p in parts:
+        if "*" in p:
+            patterns.append(re.escape(p).replace(r"\*", "[^.]+"))
+        else:
+            exact.append(p)
+    if not exact and not patterns:
+        exact = ["http://localhost:3000"]
+    return {
+        "allow_origins": exact,
+        "allow_origin_regex": ("^(" + "|".join(patterns) + ")$") if patterns else None,
+        "allow_credentials": "*" not in exact,
+    }
 
 
 app = FastAPI(
@@ -91,12 +109,12 @@ app = FastAPI(
     description="한국 식당 메뉴판을 읽고 바가지·알레르기·문화를 판정하는 AI 어시스턴트",
 )
 
-_origins = _cors_origins()
+_cors_cfg = _cors_origins_config()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_origins,
-    # credentials only when explicit origin list (not "*") — same-site safe
-    allow_credentials="*" not in _origins,
+    allow_origins=_cors_cfg["allow_origins"],
+    allow_origin_regex=_cors_cfg["allow_origin_regex"],
+    allow_credentials=_cors_cfg["allow_credentials"],
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Accept", "X-Requested-With"],
     max_age=600,
