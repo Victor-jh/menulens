@@ -14,9 +14,12 @@ const API_BASE =
 
 const TIMEOUT_MS = 90_000; // backend Gemini timeout = 60s, allow margin for network
 
+export type AnalyzeMode = "auto" | "text" | "photo";
+
 export async function analyzeMenu(
   imageFile: File,
-  profile: UserProfile
+  profile: UserProfile,
+  mode: AnalyzeMode = "auto"
 ): Promise<AnalyzeResponse> {
   const fd = new FormData();
   fd.append("image", imageFile);
@@ -24,6 +27,7 @@ export async function analyzeMenu(
   fd.append("allergies", profile.allergies.join(","));
   if (profile.religion) fd.append("religion", profile.religion);
   if (profile.diet) fd.append("diet", profile.diet);
+  if (mode !== "auto") fd.append("mode", mode);
 
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);

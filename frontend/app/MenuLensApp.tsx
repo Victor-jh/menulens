@@ -157,11 +157,11 @@ export function MenuLensApp() {
     }
   };
 
-  const handleAnalyze = async (file: File) => {
+  const handleAnalyze = async (file: File, mode: "auto" | "text" | "photo" = "auto") => {
     // Keep Upload mounted during the request so the user keeps seeing their photo
     // and any error reported in-place. The Upload component manages its own busy spinner.
     setAnalyzedFile(file);
-    const r = await analyzeMenu(file, profile);
+    const r = await analyzeMenu(file, profile, mode);
     setResult(r);
     setPhase("results");
   };

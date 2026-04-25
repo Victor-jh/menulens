@@ -2,8 +2,10 @@
 
 import { useRef, useState } from "react";
 
+type AnalyzeMode = "auto" | "text" | "photo";
+
 interface Props {
-  onAnalyze: (file: File) => Promise<void>;
+  onAnalyze: (file: File, mode: AnalyzeMode) => Promise<void>;
   onBack: () => void;
 }
 
@@ -53,6 +55,7 @@ export function Upload({ onAnalyze, onBack }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<AnalyzeMode>("auto");
 
   const handleFile = (f: File) => {
     setFile(f);
@@ -66,7 +69,7 @@ export function Upload({ onAnalyze, onBack }: Props) {
     setError(null);
     try {
       const optimized = await compressForUpload(file);
-      await onAnalyze(optimized);
+      await onAnalyze(optimized, mode);
     } catch (e) {
       setError((e as Error).message || "Analysis failed");
       setTimeout(() => {
@@ -111,6 +114,36 @@ export function Upload({ onAnalyze, onBack }: Props) {
         ) : (
           <span className="text-zinc-400">No photo yet</span>
         )}
+      </div>
+
+      <div
+        role="radiogroup"
+        aria-label="Detection mode"
+        className="grid grid-cols-3 gap-1 text-xs bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1"
+      >
+        {(
+          [
+            { key: "auto", label: "Auto", hint: "AI decides" },
+            { key: "text", label: "Menu board", hint: "메뉴판" },
+            { key: "photo", label: "Food photo", hint: "음식 사진" },
+          ] as const
+        ).map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            role="radio"
+            aria-checked={mode === opt.key}
+            onClick={() => setMode(opt.key)}
+            className={
+              mode === opt.key
+                ? "rounded-md py-2 bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-50 font-medium"
+                : "rounded-md py-2 text-zinc-600 dark:text-zinc-400"
+            }
+          >
+            <span className="block">{opt.label}</span>
+            <span className="block text-[10px] opacity-70">{opt.hint}</span>
+          </button>
+        ))}
       </div>
 
       {/*
