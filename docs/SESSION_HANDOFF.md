@@ -30,20 +30,22 @@
 - proposal.md 4 sections 완성 (D8 evidence-based 강화, 출처 7개)
 - pitch_deck.md D8 실측 데이터 반영, user_stories.md Yui 페르소나 정합
 
-### 배포 URL
-- **Frontend (Vercel)**: https://menulens-app.vercel.app ✅ LIVE
-  - 프로젝트명: `menulens` (victor-jhs-projects 스코프)
-  - NEXT_PUBLIC_API_URL=https://menulens-backend.onrender.com 설정 완료
-  - SSO Protection 해제 완료 (공개 접근 가능)
-- **Backend (Render)**: https://menulens-backend.onrender.com ⚠️ no-server
-  - render.yaml blueprint 연결 완료, 도메인 할당됨
-  - 컨테이너 미구동 — Render 대시보드에서 환경변수 5개 입력 + Manual Deploy 필요
+### 배포 URL ✅ 양쪽 LIVE (2026-04-26)
+- **Frontend (Vercel)**: https://menulens-app.vercel.app
+  - 프로젝트명: `menulens` (victor-jhs-projects 스코프, prj_4nZEvi2UoQH7OHmE2pcwWtH6EHve)
+  - NEXT_PUBLIC_API_URL=https://menulens-backend.onrender.com 빌드 인젝션
+  - SSO Protection 해제 (공개 접근)
+- **Backend (Render)**: https://menulens-backend.onrender.com
+  - srv-d7mes7u7r5hc7385kuf0, Docker free tier (싱가포르)
+  - /health 200, /restaurants/nearby?source=lod prod 5건 PASS
+  - CORS preflight `https://menulens-app.vercel.app` exact match
+  - **참고**: free tier 15분 idle 후 sleep, cold start 30초
 
 ### 미완 (P0, 오늘~D14)
-1. **Render 백엔드 배포 완료** — 대시보드에서 GEMINI_API_KEY / ANTHROPIC_API_KEY / SUPABASE_URL / SUPABASE_SERVICE_KEY / SUPABASE_ANON_KEY 5개 입력 후 Manual Deploy (아래 §사용자 액션 참조)
-2. 시연 영상 1분 30초 (D9, 4/29 일정)
-3. proposal.md — 시연 영상 YouTube 링크 추가 (D9 후), GitHub public 링크 (D14)
-4. HWP 변환 → PDF 제출 (D11~D13)
+1. 시연 영상 1분 30초 (D9, 4/29 일정)
+2. proposal.md — 시연 영상 YouTube 링크 추가 (D9 후), GitHub public 링크 (D14)
+3. HWP 변환 → PDF 제출 (D11~D13)
+4. 모바일 iPhone에서 menulens-app.vercel.app 접속해 실 메뉴판 E2E 한 번 더 확인 (선택)
 
 ### ✅ 완료된 것 (이전 세션)
 - D1~D8 전 코드 완료·검증·push (ea9b777까지 origin/main에 있음)
