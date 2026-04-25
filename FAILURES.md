@@ -17,6 +17,33 @@
 
 ---
 
+## 2026-04-25 (D8 후반) · 19번째 함정 — 다운로드 폴더 파일 오인 + 60분 잘못된 트러블슈팅
+
+**상황**: 사용자가 채팅에 메뉴판 사진 첨부 + "다운로드 폴더에 IMG_0426.heic" 안내. 그 파일이 곧 메뉴판이라고 가정하고 `/analyze` 호출 → 결과는 `Sources: photo_id, items 6` (떡볶이/순대/김밥…). 모델 한계로 오해.
+
+**잘못된 가정 4단계 (모두 무용)**:
+1. 프롬프트 Mode Priority 룰 강화 (5+ 텍스트 = TEXT MODE 강제)
+2. sips로 1600px 다운샘플 + EXIF normalize
+3. 하단 35% crop으로 음식 사진 영역 제거
+4. Gemini 2.5 Flash → 2.5 Pro 모델 업그레이드 + force_mode=text override
+
+모두 적용해도 동일하게 photo_id 6건 — 모델이 override 무시하는 줄 알았다.
+
+**진실**: cropped jpg를 직접 열어보니 IMG_0426.heic는 식탁 위 음식 사진(떡볶이·김밥·도가니탕·어묵탕·단무지)이었다. 채팅 첨부 사진과 다운로드 폴더 파일이 **서로 다른 파일**. Gemini는 처음부터 100% 정답이었다.
+
+**진짜 메뉴판 사진(다운로드 (1).jpeg, 468×832 메신저 압축본)으로 재시도**:
+- 77개 메뉴 (실제 ~80개 중 1개 OCR noise drop) · 가격 77/77 추출 · OCR 95% · 42s
+- 페르소나 conflict 정확 (돈까스→pork, 치킨까스→chicken, 부대찌개→pork)
+- 가격 차단 정확 (참치김밥 ₩5000 → 김밥 평균 ₩3,700 대비 35%)
+- 무료 사이드 14개 (단무지/국 등)
+
+**교훈**:
+- **first 5분에 cropped output을 직접 열어봤어야**. Read 한 번이면 끝날 일을 4단계 가정 위에 쌓음.
+- 사용자가 보낸 채팅 이미지와 사용자가 가리킨 파일 path가 다를 수 있다 — 검증 1단계는 항상 **이미지를 시각으로 확인**.
+- force_mode + system_instruction + mode 파라미터는 결과적으로 메뉴판 모드 정확도에 기여 (468×832 작은 채팅 압축본에서도 77개 OCR 통과). 잘못된 가정 위 산출물도 일부는 살아남음 — rollback 결정 시 **개선 vs 추측을 분리**해서 평가.
+
+---
+
 ## 2026-04-25 (D8 시작) · 18번째 함정 — frontend/backend allowed-values 드리프트
 
 **상황**: D7 P0 감사에서 frontend `types.ts:124`의 `UserProfile.diet`에 `"pescatarian"` 추가했지만 backend `main.py` `ALLOWED_DIETS = {"", "vegan", "vegetarian"}`에는 누락. 사용자 onboarding에서 Pescatarian 선택 → localStorage 저장 → /analyze 호출 시 매번 `400 Unsupported diet: pescatarian`. 사용자 입장에선 "서버가 작동 안 하는" 것처럼 보임.

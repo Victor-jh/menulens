@@ -47,6 +47,11 @@ backend/data/hansik_800_raw.*
 tests/sample_menus/*.jpg
 tests/sample_menus/*.png
 !tests/sample_menus/.gitkeep
+# Local-only test fixtures (real restaurant photos — copyright + privacy)
+tests/fixtures/real_menu*.jpg
+tests/fixtures/real_menu*.jpeg
+tests/fixtures/real_menu*.png
+tests/fixtures/real_menu*.heic
 tests/out/
 
 # Logs

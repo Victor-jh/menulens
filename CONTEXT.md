@@ -77,9 +77,9 @@
 
 ### 🔥 D7~D8 시점 우선순위 (P0)
 1. ✅ **TourAPI 4.0 LOD SPARQL 연동 (ADR-014)** — 키 미발급 상태에서도 즉시 작동. `/restaurants/nearby?source=auto` LOD 1순위, OpenAPI 키 들어오면 fallback. 서울시청 canary 5건 PASS (대상해/마이시크릿덴/루이/광화문국밥/만족오향족발). 외국인 시연용 다국어 라벨은 OpenAPI 키 발급 후 보강.
-2. 실 메뉴판 사진 1장 → 모바일 Hard Gate 통과
+2. ✅ **D7 Hard Gate PASS (실 메뉴판)** — 싸다김밥 연신내역점 (468×832 메신저 압축본)으로 77개 메뉴 추출, 가격 77/77, OCR 95%, 42s, Pescatarian 페르소나 39🟢/2🟡/36🔴, free_side 14개 정확. 채팅 첨부 사진과 다운로드 파일 오인하는 19번째 함정 발생 후 정정. force_mode=text + system_instruction + Gemini Flash 조합이 작동.
 3. Vercel + Render 실 배포 (사용자 OAuth 1회)
-4. 시연 영상 1분 30초 시나리오 + 1차 촬영 (D9)
+4. 시연 영상 1분 30초 시나리오 + 1차 촬영 (D9) — Pescatarian 분식집 시나리오 직행 가능
 5. 제안서 1차 초안 5쪽 (D10) — §3 데이터 활용에 OpenAPI(REST) + LOD(SPARQL) 이중 활용 강조
 
 ### ✅ 완료된 P0 (이 세션에서)

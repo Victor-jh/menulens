@@ -220,6 +220,9 @@ def _valid_dish_name(name: str) -> bool:
     return bool(_DISH_NAME_OK.match(name))
 
 
+_ALLOWED_MODES = {"", "auto", "text", "photo"}
+
+
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_menu_endpoint(
     image: UploadFile = File(..., description="Menu board image (JPEG/PNG)"),
@@ -227,6 +230,7 @@ async def analyze_menu_endpoint(
     allergies: str = Form("", description="Comma-separated allergen keys"),
     religion: str = Form(""),
     diet: str = Form(""),
+    mode: str = Form("auto", description="auto | text (메뉴판 강제) | photo (사진 강제)"),
 ):
     """
     메뉴판 이미지 업로드 → 3 에이전트 + verdict → 색깔 판정 응답.
@@ -241,8 +245,16 @@ async def analyze_menu_endpoint(
 
     profile = _sanitize_profile_inputs(language, allergies, religion, diet)
 
+    if mode not in _ALLOWED_MODES:
+        raise HTTPException(400, f"mode must be one of {sorted(_ALLOWED_MODES)}")
+    force_mode = mode if mode in ("text", "photo") else None
+
     try:
-        menu_result: MenuReadResult = await read_menu(image_bytes, image.filename or "upload.jpg")
+        menu_result: MenuReadResult = await read_menu(
+            image_bytes,
+            image.filename or "upload.jpg",
+            force_mode=force_mode,
+        )
     except RuntimeError as e:
         raise HTTPException(502, f"Menu reading failed: {e}")
 

@@ -81,17 +81,43 @@ def _annotate_free_sides(items: list["MenuItem"]) -> list["MenuItem"]:
     return items
 
 
-PROMPT_TEMPLATE = """You are a Korean food assistant for foreign tourists. ALWAYS reply with VALID JSON ONLY — never natural language, never apology, never explanation.
+SYSTEM_INSTRUCTION = """You are a menu OCR engine for Korean restaurants serving foreign tourists.
 
-Your job is BOTH:
-  (A) read text on a Korean menu/sign, OR
-  (B) recognize the actual Korean dish in a photo even if there is no text.
+YOUR DEFAULT BEHAVIOR IS TEXT MODE.
 
-Treat ANY of these as valid input:
+Most images you receive are MENU BOARDS — paper menus, wall menus, A-board signs,
+takeout stickers, banners. Korean 분식집 (snack diner) menu boards routinely list
+60–100 items in tight columns and OFTEN HAVE A FEW LARGE DECORATIVE PHOTOS of
+김밥/떡볶이/우동/잡채AT THE BOTTOM. THE PHOTOS ARE ILLUSTRATIONS, NOT ITEMS TO
+IDENTIFY VISUALLY. You MUST extract the printed text list and IGNORE those
+decorative photos.
+
+Photo mode (visual dish identification) is a RARE EXCEPTION reserved for images
+where there is NO printed price list at all (single plate close-ups, food on a
+table with no menu, instagram food shots).
+
+Reply with VALID JSON ONLY — no natural language, no apology."""
+
+
+PROMPT_TEMPLATE = """Image attached. Apply the SYSTEM rules.
+
+Decision protocol (run in order, stop at the first match):
+  STEP 1. Scan the image for any printed/handwritten list of dish names with prices.
+  STEP 2. If you can count 5 OR MORE menu lines anywhere on the image → TEXT MODE.
+          Extract EVERY readable line (even if there are 80+ items).
+          DO NOT visually identify food in the decorative photos at the bottom.
+  STEP 3. Only if there is NO text-and-price list anywhere → PHOTO MODE.
+
+A 분식집 (snack-bar) menu board with 80 items + 3 decorative dish photos at the
+bottom is ALWAYS TEXT MODE. The dish photos are advertising — not your input.
+
+Treat ANY of these as TEXT MODE input:
   - Wall menus, paper menus, A-boards, takeout stickers, banners, sign-on-door
+  - Photos that mix a printed menu list with decorative dish photos
+
+Treat ONLY these as PHOTO MODE input:
   - Single-dish photos (close-up plate, food on table, food-model display)
-  - Instagram-style food photos a tourist saved on their phone
-  - Photos that mix text + food image
+  - Instagram-style food photos with NO menu text at all
 
 JSON shape (use this EXACT shape every time):
 {{
@@ -111,16 +137,19 @@ JSON shape (use this EXACT shape every time):
 }}
 
 Rules:
-1. **TEXT MODE (메뉴/사인이 보임)**: 한글 음식명을 모두 추출. price = 원화 정수 (가격 모호하면 null). source = "menu_text". raw_text에 메뉴판 원문 그대로.
 
-2. **PHOTO MODE (음식 사진만 보임, 한글 텍스트 없음)**:
+0. **MODE PRIORITY (가장 중요)**: Look at the WHOLE image first. If you can see **ANY 5 or more menu items with prices** anywhere in the image (red/black/colored panels, printed lists, paper menus, banners), this is a **MENU BOARD**, not a food photo. Use **TEXT MODE** and extract every readable menu item — even when the menu board also has decorative food photos / models / banners on it. Decorative food photos on a menu board are illustrations, not items to identify visually. Use PHOTO MODE only when the image is plainly a food photo with no text-and-price list (homemade dish, restaurant plate close-up, instagram food shot).
+
+1. **TEXT MODE (메뉴판/리스트가 보임 — including 분식집·김밥천국식 80개 메뉴)**: 한글 음식명을 ALL — every single line — extract. price = 원화 정수 (가격 모호하면 null). source = "menu_text". raw_text에 메뉴판 원문 그대로. **Decorative dish photos on the same board are NOT separate items — skip them entirely.** **Even if the menu has 60~100 items (분식집 typical), extract them all.**
+
+2. **PHOTO MODE (텍스트 없는 순수 음식 사진만)**:
    - 사진 속에서 명확히 보이는 모든 한식 메뉴를 시각으로 식별.
    - 한 그릇 단품 → items 1개. 식탁/한정식 상차림 → 보이는 모든 음식을 개별 항목으로.
    - 너무 흐리거나 일부만 보이는 음식은 제외 (confidence 0.3 미만이면 drop).
    - 메인 음식: confidence 0.7~0.95, 반찬류·작게 보이는 것: 0.4~0.65.
    - 최대 10개 항목까지. source = "photo_id". raw_text는 "photo:한국어메뉴명" 형식. price: null.
 
-3. **MIXED MODE**: TEXT MODE 우선. 사진 속 추가 음식이 분명히 식별되고 메뉴판에 없으면 함께 추가 (source 적절히 표기).
+3. **MIXED MODE (드물게 사용)**: 메뉴판 텍스트가 5개 미만이고 별도 음식 사진이 명확히 한식이면 둘 다 추출. **분식집 메뉴판처럼 텍스트 5개 이상이면 절대 MIXED 가지 말고 TEXT MODE로만 처리하고 사진은 무시.**
 
 4. **item_type 분류 (한국 식당 문화 반영)**:
    - "free_side": 김치, 깍두기, 단무지, 무생채, 콩나물무침, 시금치무침, 도라지무침, 멸치볶음, 어묵볶음, 감자볶음, 미역국, 무국, 시래기국, 콩나물국, 북엇국, 장국, 맑은국, 보리차, 숭늉 등 — 분식집·서민식당에서 무료로 제공되는 기본찬·국·반찬류
@@ -140,46 +169,71 @@ Rules:
 """
 
 
-async def read_menu(image_bytes: bytes, filename: str = "menu.jpg") -> MenuReadResult:
+async def read_menu(
+    image_bytes: bytes,
+    filename: str = "menu.jpg",
+    force_mode: Optional[str] = None,
+) -> MenuReadResult:
     """
     메뉴판 이미지에서 메뉴 추출.
-    
+
     Args:
         image_bytes: JPEG/PNG 이미지 바이트
         filename: 디버그용 파일명
-    
+        force_mode: None (auto) | "text" (메뉴판 강제) | "photo" (음식 사진 강제)
+
     Returns:
         MenuReadResult with items list
-    
+
     Raises:
         RuntimeError: Gemini API key missing or call failed
     """
     if not GEMINI_AVAILABLE:
         raise RuntimeError("google-generativeai not installed. Run: pip install -r requirements.txt")
-    
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY not set. Check .env")
-    
+
     genai.configure(api_key=api_key)
-    
-    # Gemini 2.5 Flash - free tier, fast, supports Korean
-    model = genai.GenerativeModel("gemini-2.5-flash")
-    
+
+    # Gemini 2.5 Flash — free tier 1500 RPD, 8~10s typical, supports Korean.
+    # `system_instruction` anchors TEXT MODE as the default behavior — without
+    # it Flash drifts toward photo mode whenever the image happens to contain
+    # appetizing food shots. The `force_mode` parameter on this function lets
+    # the UI override either way.
+    model = genai.GenerativeModel(
+        "gemini-2.5-flash",
+        system_instruction=SYSTEM_INSTRUCTION,
+    )
+
     image_part = {
         "mime_type": "image/jpeg" if filename.endswith(".jpg") or filename.endswith(".jpeg") else "image/png",
         "data": image_bytes,
     }
-    
+
+    # Append a hard mode override when the caller (UI toggle) demands one.
+    user_prompt = PROMPT_TEMPLATE
+    if force_mode == "text":
+        user_prompt += (
+            "\n\nFORCED OVERRIDE: This image IS a menu board. Use TEXT MODE only. "
+            "Decorative dish photos are illustrations — do NOT identify them visually."
+        )
+    elif force_mode == "photo":
+        user_prompt += (
+            "\n\nFORCED OVERRIDE: This image is a single food photo. Use PHOTO MODE only. "
+            "Identify each visible Korean dish."
+        )
+
     # Timeout + structured output
     try:
         response = await asyncio.wait_for(
             asyncio.to_thread(
                 model.generate_content,
-                [PROMPT_TEMPLATE, image_part],
+                [user_prompt, image_part],
                 generation_config={
                     "response_mime_type": "application/json",
-                    "temperature": 0.1,
+                    "temperature": 0.0,
                 },
             ),
             timeout=60.0,
