@@ -89,27 +89,33 @@
 - [x] Chrome MCP로 onboarding → upload → **results** 전체 phase 전환 검증 (합성 메뉴판)
 - [x] 합성 메뉴판 E2E 통과: OCR 98%, 9.3s, 6 items, 🔴🟡🟢 전부 표시, 다중 사유 동시(무슬림+돼지+가격)
 - [x] 배포 아티팩트: `Dockerfile`, `render.yaml`, `frontend/vercel.json`, `docs/deployment.md`
-- [ ] Vercel/Render 실 배포 + 모바일 브라우저 테스트 (사용자 대시보드 로그인 필요)
-- **🚨 Hard Gate 판정 (실 사진 입수 시)**: "실제 메뉴판 사진 → 색깔 3종 표시 + TTS 재생"이 작동하는가?
-  - ✅ 작동 → Week 2 계속
-  - ❌ 미작동 → **이 자리에서 포기 결정**. 제안서만 제출하거나 불참.
-- **실 소요**: UI 1.5시간, Vercel 배포·실 사진 검증은 별도
+- [ ] Vercel/Render 실 배포 + 모바일 브라우저 테스트 (D8에 진행, 사용자 OAuth 직접 진행)
+- [x] **🚨 Hard Gate PASS** (2026-04-25 D8): 싸다김밥 연신내역점 메뉴판(메신저 압축본 468×832) → 77/80 메뉴 + 가격 77/77 + OCR 95% + 42.2s + 페르소나 conflict 36/36 정확. menu_reader system_instruction + force_mode 도입 (commit ae556e0).
+- **실 소요**: UI 1.5시간 / Hard Gate 검증 1시간 / 배포 D8 별도
 
 ---
 
 ## Week 2: 제안서·시연 영상·퇴고
 
-### D8 — 2026-04-28 (월) · TourAPI 4.0 + 실 메뉴판 측정
-- [ ] **TourAPI 4.0 연동 — 공모전 필수 활용 (1순위 P0)**
-  - 공공데이터포털 15101578 활용신청
-  - `areaBasedList2`로 식당 근처 검색
-  - `detailIntro2`로 식당 상세 (영업시간·주차·전화)
-  - `searchKeyword2` 다국어 7개 (영·일·중간·중번 등)
-  - 결과 카드에 "📍 근처 식당" 섹션 추가
+### D8 — 2026-04-25 (토, 당겨서 진행) · TourAPI 4.0 + 실 메뉴판 측정 + Hard Gate
+- [x] **TourAPI 4.0 LOD SPARQL 1순위 채택 (ADR-014)** — 공모전 필수 활용 충족
+  - LOD endpoint `data.visitkorea.or.kr/sparql` 인증키 0, 1.47M entities, 15.5K kto:Gastro
+  - BBOX FILTER + 후처리 Haversine으로 좌표 검색 (saltlux geo:nearby 우회)
+  - foaf:depiction 사진 · ktop:tel/openTime/bestMenu 단일 SPARQL 호출 인라인
+  - 서울시청 canary 5건 PASS (대상해/마이시크릿덴/루이/광화문국밥/만족오향족발) <800ms
+- [x] **KorService2 OpenAPI 2순위 fallback** — 키 발급 시 다국어 라벨 5종(Kor/Eng/Jpn/Chs/Cht) 자동 보강
+  - `/restaurants/nearby?source=auto` 라우터 (LOD 우선·OpenAPI fallback)
+  - `/restaurants/{content_id}` detail (영업시간·주차·전화·대표메뉴)
+  - 결과 카드에 "📍 Nearby restaurants" 섹션 + cat3 한식/양식 매핑
+- [x] **Hard Gate PASS** (싸다김밥 분식점 80개 메뉴) — §3.3 작동 검증 표
 - [x] 색맹 라벨 (✓!✕ + SAFE/CAUTION/AVOID + 좌측 stripe) — 이미 적용
 - [x] 로딩 애니메이션 (Upload busy overlay) — 이미 적용
 - [x] 오류 처리 (no items 빈 상태 + 502/timeout 분기) — 이미 적용
-- [ ] 5개 이상 메뉴판 사진으로 실측, 정확도 기록 → `docs/measurement.md`
+- [x] **proposal.md §1·§2·§3·§4 evidence-based 보강** (LOD 1순위 + Hard Gate 검증 표)
+- [x] **pitch_deck.md §7 D8 측정 데이터 표** + 시연 샘플 4건 실측 교체 (Yui Pescatarian)
+- [x] **user_stories.md Persona 2 (Yui)** D8 실측 페르소나로 정합 + 매핑 표
+- [ ] **D8 미완**: Vercel + Render 실 배포 (사용자 OAuth 직접 진행 중)
+- [ ] 5개 이상 메뉴판 사진으로 추가 실측, 정확도 기록 → `docs/measurement.md` (D9 일정으로 이전)
 
 ### D9 — 2026-04-29 (화) · 시연 영상 1차 촬영
 - [ ] 시연 시나리오 스크립트 (`docs/pitch_deck.md`)
