@@ -5,8 +5,9 @@
 
 한국 식당 앞에 선 외국인이 메뉴판 사진 한 장으로 "이 메뉴를 시켜도 될지"를 **4초 안에** 판단할 수 있도록 돕는 AI 어시스턴트.
 
-[![Status](https://img.shields.io/badge/status-PoC-yellow)]()
+[![Status](https://img.shields.io/badge/status-Hard_Gate_PASS-brightgreen)]()
 [![Competition](https://img.shields.io/badge/2026_KTO-관광데이터_활용_공모전-blue)]()
+[![Data](https://img.shields.io/badge/TourAPI_4.0-LOD_SPARQL_+_KorService2-purple)]()
 
 ---
 
@@ -55,20 +56,21 @@
 
 | 데이터셋 | 역할 |
 |---|---|
-| **TourAPI** (필수) | 식당 기본정보, 다국어 7개, LOD SPARQL |
-| **한식진흥원 길라잡이 800선** | 영·일·중 표준 메뉴 번역 |
+| **TourAPI 4.0 LOD SPARQL** ⭐ | 식당 1.47M entities · `kto:Gastro` 15.5K — **역대 13회 수상작 최초 활용** ([ADR-014](DECISIONS.md)) |
+| **TourAPI 4.0 KorService2** | 다국어 5종(Eng/Jpn/Chs/Cht) 라벨 보강 |
+| **한식진흥원 길라잡이 800선** | 영·일·중 표준 메뉴 번역 (Gemini text-embedding-004 RAG) |
 | **한국소비자원 참가격** | 서울 8개 외식 품목 평균가 |
 | **식약처 식품영양성분DB** | 알레르기 재료 검증 |
 | **카카오 로컬 API** | 식당 위치·지역 보정 |
 
 ## 🛠️ 기술 스택
 
-- **Frontend**: Next.js + PWA
-- **Backend**: FastAPI (Python 3.11) on Cloud Run
-- **AI**: Claude Sonnet 4.6 · Gemini 2.5 Flash · OpenAI embeddings
-- **DB**: Supabase Postgres + pgvector
-- **TTS**: Google Cloud TTS
-- **Deploy**: Vercel (web) + Cloud Run (API)
+- **Frontend**: Next.js 16 (App Router, Turbopack) + Tailwind 4
+- **Backend**: FastAPI (Python 3.11) on Render (Docker)
+- **AI**: Claude Sonnet 4.6 · Gemini 2.5 Flash Vision · Gemini text-embedding-004 (768d)
+- **DB**: Supabase Postgres + pgvector + HNSW
+- **TTS**: Microsoft Edge TTS (primary, free 무제한) + Gemini TTS fallback ([ADR-010](DECISIONS.md))
+- **Deploy**: Vercel (frontend) + Render Docker (backend)
 
 ## 🚀 시작하기
 
@@ -101,10 +103,25 @@ npm install
 npm run dev
 ```
 
+## ✅ Hard Gate 검증 결과 (D8, 2026-04-25)
+
+서울 연신내역 분식점 메뉴판 80개 메뉴 stress 케이스:
+
+| 항목 | 측정값 |
+|---|---|
+| 메뉴 OCR | **77/80** (96%, OCR 95%) |
+| 가격 자동 추출 | **77/77** (100%) |
+| 페르소나 conflict 차단 정확도 (Pescatarian) | **36/36** |
+| 무료 사이드 자동 인식 | 14건 (단무지·맑은국 등) |
+| LOD nearby 응답 (서울시청 5건) | **<800ms** · 사진 5/5 인라인 |
+| 처리 시간 (cap 80개 + RAG·TTS 병렬) | 42.2초 |
+
+상세: [docs/proposal.md §3.3](docs/proposal.md), [docs/pitch_deck.md §7](docs/pitch_deck.md)
+
 ## 📅 로드맵
 
-- **v0.1 (PoC)**: 사진 모드 + 색깔 오버레이 + 탭-주문 (D1~D7)
-- **v0.2**: 다국어 지원 확장, UX 개선 (D8~D16)
+- **v0.1 (PoC)**: 사진 모드 + 색깔 오버레이 + 탭-주문 (D1~D7) ✅
+- **v0.2 (D8 진행 중)**: TourAPI LOD/OpenAPI 이중 채널, Pescatarian 페르소나 검증, Vercel+Render 배포
 - **v1.0 (Post-competition)**: 라이브 AR 모드, B2B 식당 대시보드
 - **v2.0**: 전국 확장, 사용자 크라우드 가격 제보
 
@@ -114,7 +131,8 @@ npm run dev
 |---|---|
 | [CONTEXT.md](./CONTEXT.md) | Project overview (single-page onboarding) |
 | [ROADMAP.md](./ROADMAP.md) | D1~D16 daily checklist |
-| [DECISIONS.md](./DECISIONS.md) | Architecture decision records (ADR-001~006) |
+| [DECISIONS.md](./DECISIONS.md) | Architecture decision records (ADR-001~014) |
+| [FAILURES.md](./FAILURES.md) | 19개 함정 기록 (재발 방지) |
 | [docs/proposal.md](./docs/proposal.md) | Competition submission proposal (5p) |
 | [docs/pitch_deck.md](./docs/pitch_deck.md) | 90s demo video shot list |
 | [docs/user_stories.md](./docs/user_stories.md) | 4 user personas |
