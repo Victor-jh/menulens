@@ -49,7 +49,7 @@ class UserProfile(BaseModel):
     language: str = Field("en", description="UI 언어 ko/en/ja/zh-Hans/zh-Hant")
     allergies: list[str] = Field(default_factory=list, description="14종 중 피하는 것: pork/beef/chicken/... ")
     religion: Optional[str] = Field(None, description="halal | kosher | none")
-    diet: Optional[str] = Field(None, description="vegan | vegetarian | none")
+    diet: Optional[str] = Field(None, description="vegan | vegetarian | pescatarian | none")
 
 
 class VerdictResult(BaseModel):
@@ -93,38 +93,58 @@ def decide(
             "allergen_conflict",
         ))
 
-    # 2. 종교 (🔴) — 현재는 halal만 구현
+    # 2. 종교 (🔴) — halal 우선 구현, 구체 재료 명시 (Ahmed 페르소나 대응)
     if profile.religion == "halal" and not dish.halal_safe:
+        # dish.allergens 에서 haram 트리거 재료만 나열
+        haram_trigger = sorted({a for a in (dish.allergens or []) if a in {"pork", "alcohol"}})
+        trigger_str = "/".join(haram_trigger) if haram_trigger else "unclear ingredients"
         results.append((
             FinalColor.RED,
-            "Haram 재료 포함 (할랄 인증과 다름 — KMF 교차확인 권장)",
+            f"Not halal — contains {trigger_str}. KMF certification required for full assurance.",
             "religion_conflict",
         ))
     elif profile.religion == "kosher":
         # D5 Phase 1 미구현 — 프로필만 받고 색 영향 없음
         pass
 
-    # 3. 식단 (🔴/🟡)
+    # 3. 식단 (🔴/🟡) — vegan / vegetarian / pescatarian
+    _MEAT = {"pork", "beef", "chicken"}
+    _SEA = {"seafood", "fish", "shellfish"}
+    dish_has_meat = bool(dish_set & _MEAT)
+    dish_has_sea = bool(dish_set & _SEA)
+
     if profile.diet == "vegan":
         if not dish.vegan_safe:
             if dish.vegetarian_safe:
                 # vegan 유저인데 메뉴는 lacto-ovo — 🟡 경고
+                blocker = sorted({a for a in dish_set if a in {"egg", "dairy"}}) or ["egg/dairy"]
                 results.append((
                     FinalColor.YELLOW,
-                    "비건 유저 주의: 계란·유제품 포함 가능",
+                    f"Not vegan — contains {', '.join(blocker)}",
                     "diet_soft_conflict",
                 ))
             else:
+                blocker = sorted(dish_set & (_MEAT | _SEA)) or ["animal ingredients"]
                 results.append((
                     FinalColor.RED,
-                    "비건 부적합: 고기·해물 포함",
+                    f"Not vegan — contains {', '.join(blocker)}",
                     "diet_hard_conflict",
                 ))
     elif profile.diet == "vegetarian":
         if not dish.vegetarian_safe:
+            blocker = sorted(dish_set & (_MEAT | _SEA)) or ["meat/seafood"]
             results.append((
                 FinalColor.RED,
-                "채식 부적합: 고기·해물 포함",
+                f"Not vegetarian — contains {', '.join(blocker)}",
+                "diet_hard_conflict",
+            ))
+    elif profile.diet == "pescatarian":
+        # pescatarian: seafood/fish OK, meat 불가
+        if dish_has_meat:
+            blocker = sorted(dish_set & _MEAT)
+            results.append((
+                FinalColor.RED,
+                f"Not pescatarian — contains {', '.join(blocker)}",
                 "diet_hard_conflict",
             ))
 

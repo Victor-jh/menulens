@@ -46,8 +46,13 @@ export function Upload({ onAnalyze, onBack }: Props) {
           ← Profile
         </button>
       </div>
-      <p className="text-zinc-600 dark:text-zinc-400 text-sm">
-        Snap the menu in front of you. We&apos;ll color-code each item: 🟢 safe · 🟡 caution · 🔴 avoid.
+      <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">
+        Snap the menu in front of you. Each item is color-coded
+        <span className="whitespace-nowrap"> (✓ Safe · ! Caution · ✕ Avoid)</span> using
+        your profile + Korean consumer price index.
+      </p>
+      <p className="text-xs text-zinc-500">
+        Tip: flat menu, even lighting, crop out the table. JPG/PNG up to 10MB.
       </p>
 
       <div

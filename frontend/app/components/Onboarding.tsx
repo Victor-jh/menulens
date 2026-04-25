@@ -71,6 +71,7 @@ export function Onboarding({ profile, setProfile, onNext }: Props) {
             <option value="">Diet: none</option>
             <option value="vegan">Vegan</option>
             <option value="vegetarian">Vegetarian</option>
+            <option value="pescatarian">Pescatarian</option>
           </select>
         </div>
       </section>

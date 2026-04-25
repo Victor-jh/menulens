@@ -56,7 +56,7 @@ export interface UserProfile {
   language: "en" | "ko" | "ja" | "zh-Hans" | "zh-Hant";
   allergies: string[];
   religion: "" | "halal" | "kosher";
-  diet: "" | "vegan" | "vegetarian";
+  diet: "" | "vegan" | "vegetarian" | "pescatarian";
 }
 
 export const ALLERGEN_OPTIONS: { key: string; label: string }[] = [
