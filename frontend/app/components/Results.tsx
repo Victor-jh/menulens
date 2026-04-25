@@ -77,21 +77,66 @@ export function Results({
   );
   const cartByName = new Map(cart.map((c) => [c.name, c.qty]));
 
+  // Summary counts for the hero pill (highest-signal info above the fold).
+  const greenCount = data.items.filter((it) => (it.color as Color) === "🟢").length;
+  const yellowCount = data.items.filter((it) => (it.color as Color) === "🟡").length;
+  const redCount = data.items.filter((it) => (it.color as Color) === "🔴").length;
+
+  const onShare = async () => {
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}${window.location.pathname}`
+        : "https://menulens-app.vercel.app";
+    const text = `MenuLens: ${greenCount} safe / ${yellowCount} caution / ${redCount} avoid`;
+    try {
+      if (typeof navigator !== "undefined" && (navigator as Navigator).share) {
+        await (navigator as Navigator).share({ title: "MenuLens", text, url });
+      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(`${text} — ${url}`);
+      }
+    } catch {
+      /* user cancelled or unsupported */
+    }
+  };
+
   return (
-    <div className={`flex flex-col gap-3 max-w-md mx-auto p-4 ${totalQty > 0 ? "pb-28" : ""}`}>
-      <div className="flex items-center justify-between mb-2">
+    <div
+      className={`flex flex-col gap-3 max-w-md mx-auto p-4 pt-[max(1rem,env(safe-area-inset-top))] ${
+        totalQty > 0 ? "pb-28" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between mb-1">
         <h1 className="text-2xl font-bold tracking-tight">Results</h1>
-        <button
-          type="button"
-          onClick={onReset}
-          className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-50 rounded-md px-2 py-1"
-        >
-          ↻ Re-shoot
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onShare}
+            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50 rounded-md px-2 py-1"
+            aria-label="Share results"
+          >
+            ↗ Share
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50 rounded-md px-2 py-1"
+          >
+            ↻ New menu
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">
-        <div className="flex gap-2">
+      {/* Summary hero — what the user actually wants to know at a glance. */}
+      {data.items.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          <SummaryPill color="🟢" count={greenCount} label="Safe" />
+          <SummaryPill color="🟡" count={yellowCount} label="Caution" />
+          <SummaryPill color="🔴" count={redCount} label="Avoid" />
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2 text-[11px] text-zinc-500">
+        <div className="flex gap-1.5">
           <span>OCR {Math.round(data.ocr_quality * 100)}%</span>
           <span>·</span>
           <span>{data.processing_time_seconds.toFixed(1)}s</span>
@@ -184,6 +229,42 @@ export function Results({
       <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-zinc-500 dark:text-zinc-500">
         <LegendChip color="🟢" /> <LegendChip color="🟡" /> <LegendChip color="🔴" /> <LegendChip color="⚪" />
       </div>
+    </div>
+  );
+}
+
+function SummaryPill({
+  color,
+  count,
+  label,
+}: {
+  color: Color;
+  count: number;
+  label: string;
+}) {
+  const palette: Partial<Record<Color, string>> = {
+    "🟢":
+      "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200",
+    "🟡":
+      "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 text-amber-900 dark:text-amber-200",
+    "🔴":
+      "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-900 dark:text-rose-200",
+  };
+  const accent: Partial<Record<Color, string>> = {
+    "🟢": "bg-emerald-500",
+    "🟡": "bg-amber-400",
+    "🔴": "bg-rose-500",
+  };
+  const dim = count === 0 ? "opacity-50" : "";
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${palette[color]} ${dim}`}
+    >
+      <span className={`inline-block w-2 h-2 rounded-full ${accent[color]}`} />
+      <span className="text-xl font-bold leading-none">{count}</span>
+      <span className="text-[11px] font-medium uppercase tracking-wider opacity-80">
+        {label}
+      </span>
     </div>
   );
 }

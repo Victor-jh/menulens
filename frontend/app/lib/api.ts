@@ -9,8 +9,11 @@ import type {
   UserProfile,
 } from "../types";
 
-const API_BASE =
+export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+// Backwards-compat for existing internal references.
+const API_BASE = API_BASE_URL;
 
 const TIMEOUT_MS = 90_000; // backend Gemini timeout = 60s, allow margin for network
 
