@@ -10,10 +10,11 @@ You are assisting development of **MenuLens**, a Korean menu AI assistant for in
 
 ## 2. Required Reading (in order)
 Before taking any action, read these files:
-1. `CONTEXT.md` — Project overview, architecture, constraints
-2. `ROADMAP.md` — Current day's task (find today's date, work only on that day's checkboxes)
-3. `DECISIONS.md` — Why things are the way they are (do not violate existing ADRs)
-4. `FAILURES.md` — Past mistakes to avoid
+1. **`docs/SESSION_HANDOFF.md`** — 5-min catch-up: 현재 위치, 작동·미완, 다음 즉시 작업, 함정 핵심 5개
+2. `CONTEXT.md` — Project overview, architecture, constraints, **본질 한 줄**
+3. `ROADMAP.md` — Current day's task (find today's date, work only on that day's checkboxes)
+4. `DECISIONS.md` — Why things are the way they are (ADR-001~013, do not violate)
+5. `FAILURES.md` — Past mistakes (17 traps from D5 session, **read before debugging**)
 
 ### Task-specific additional reading
 - **D3 RAG (완료)**: `docs/research/05_한식800선_정제스펙.md` — schema, allergy mapping, embedding rules

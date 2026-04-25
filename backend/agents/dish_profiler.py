@@ -56,6 +56,8 @@ class DishProfile(BaseModel):
 
     pronunciation: Optional[str] = Field(None, description="주문용 한국어 문장 (D5)")
     pronunciation_romanized: Optional[str] = Field(None, description="로마자 발음 (D5)")
+    spicy_level: Optional[int] = Field(None, ge=0, le=3, description="0=안매움, 1=약간, 2=매움, 3=매우 매움")
+    category: Optional[str] = Field(None, description="찌개 [Jjigae] 형식 카테고리")
 
     match_similarity: Optional[float] = Field(None, description="hansik_800 매칭 유사도 (0~1, cosine)")
     source: str = Field(..., description="official_db | llm_inference | hybrid | unknown")
@@ -165,8 +167,10 @@ async def profile_dish(
         halal_safe=(match.get("halal_status") == "halal_likely"),
         vegan_safe=(match.get("vegan_status") == "vegan"),
         vegetarian_safe=(match.get("vegan_status") in ("vegan", "vegetarian")),
-        pronunciation=None,         # D5
-        pronunciation_romanized=None,  # D5
+        pronunciation=None,
+        pronunciation_romanized=None,
+        spicy_level=match.get("spicy_level"),
+        category=match.get("category"),
         match_similarity=sim,
         source=source,
     )

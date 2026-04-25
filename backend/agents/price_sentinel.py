@@ -217,6 +217,38 @@ async def judge_price(dish_name: str, listed_price: int) -> PriceJudgment:
     )
 
 
+async def lookup_benchmark(dish_name: str) -> Optional[PriceJudgment]:
+    """
+    Listed price가 없어도(사진 인식 모드) 메뉴명만으로 참가격 8품목 평균을 lookup.
+    Returns PriceJudgment with verdict=UNKNOWN, benchmark_price set.
+    """
+    key, method = _exact_or_alias_match(dish_name)
+    confidence = 0.95 if method == "exact" else 0.90 if method == "alias" else 0.0
+    if not key:
+        from rapidfuzz import fuzz  # local import — already a dependency
+        key, score = _fuzzy_match(dish_name)
+        if key:
+            method = "fuzzy"
+            confidence = 0.60 + (score - 80) / 100
+    if not key:
+        return None
+    benchmark = _benchmark_for(key)
+    if benchmark is None:
+        return None
+    return PriceJudgment(
+        dish_name=dish_name,
+        listed_price=0,                   # not provided by user
+        benchmark_key=key,
+        benchmark_price=benchmark,
+        benchmark_source="참가격",
+        match_method=method,
+        match_confidence=round(confidence, 2),
+        ratio=None,
+        verdict=PriceVerdict.UNKNOWN,
+        explanation=f"보통 서울 평균 ₩{benchmark:,} 정도",
+    )
+
+
 if __name__ == "__main__":
     # ADR-007 canary + 매칭 방법별 샘플
     cases = [

@@ -30,6 +30,23 @@ PCM_SAMPLE_RATE = 24000    # Gemini TTS 고정
 PCM_SAMPLE_WIDTH = 2       # 16-bit
 PCM_CHANNELS = 1           # mono
 
+# Microsoft Edge TTS fallback — free, no key, unlimited quota.
+# Voice list: edge-tts --list-voices | grep ko-KR
+EDGE_VOICE_KO = "ko-KR-SunHiNeural"     # warm female
+EDGE_VOICE_KO_MALE = "ko-KR-InJoonNeural"
+EDGE_VOICE_JA = "ja-JP-NanamiNeural"
+EDGE_VOICE_EN = "en-US-AriaNeural"
+EDGE_VOICE_ZH = "zh-CN-XiaoxiaoNeural"
+EDGE_VOICE_ZH_TW = "zh-TW-HsiaoChenNeural"
+
+EDGE_VOICE_BY_LANG = {
+    "ko": EDGE_VOICE_KO,
+    "ja": EDGE_VOICE_JA,
+    "en": EDGE_VOICE_EN,
+    "zh-Hans": EDGE_VOICE_ZH,
+    "zh-Hant": EDGE_VOICE_ZH_TW,
+}
+
 
 class TTSResult(BaseModel):
     text: str
@@ -131,14 +148,28 @@ async def _generate_tts_gemini(text: str, voice: str) -> bytes:
     return _pcm_to_wav(pcm)
 
 
+async def _generate_tts_edge(text: str, language: str) -> tuple[bytes, str]:
+    """
+    Microsoft Edge TTS (free, no API key, unlimited quota).
+    Returns (mp3_bytes, mime).
+    """
+    import edge_tts
+    voice = EDGE_VOICE_BY_LANG.get(language, EDGE_VOICE_KO)
+    com = edge_tts.Communicate(text, voice)
+    audio = bytearray()
+    async for chunk in com.stream():
+        if chunk.get("type") == "audio":
+            audio.extend(chunk["data"])
+    if not audio:
+        raise RuntimeError("Edge TTS produced no audio")
+    return bytes(audio), "audio/mpeg"
+
+
 async def synthesize(text: str, voice: str = DEFAULT_VOICE, language: str = "ko") -> TTSResult:
     """
-    텍스트 → TTS (캐시 → Gemini → 캐시 저장).
-
-    Args:
-        text: 발화할 한국어 문장. 예: "김치찌개 하나 주세요"
-        voice: Gemini prebuilt voice. 기본 "Kore" (한국어 톤).
-        language: BCP-47 태그 (캐시 키용).
+    텍스트 → TTS. Engine cascade:
+        cache → Edge TTS (free, unlimited) → Gemini (paid, premium) → fail
+    Edge TTS is primary because Gemini free quota is restrictive.
     """
     key = _cache_key(text, voice, language)
     sb = _get_supabase()
@@ -149,13 +180,37 @@ async def synthesize(text: str, voice: str = DEFAULT_VOICE, language: str = "ko"
             return TTSResult(text=text, audio_b64=cached_b64, cached=True,
                               voice=voice, language=language)
 
-    wav_bytes = await _generate_tts_gemini(text, voice)
-    audio_b64 = base64.b64encode(wav_bytes).decode("ascii")
+    audio_bytes: Optional[bytes] = None
+    mime = "audio/wav"
+    last_err: Optional[Exception] = None
+
+    # 1) Edge TTS (free, unlimited)
+    try:
+        audio_bytes, mime = await _generate_tts_edge(text, language)
+    except Exception as e:
+        last_err = e
+        audio_bytes = None
+
+    # 2) Gemini fallback if Edge failed
+    if audio_bytes is None:
+        try:
+            audio_bytes = await _generate_tts_gemini(text, voice)
+            mime = "audio/wav"
+        except Exception as e:
+            raise RuntimeError(
+                f"All TTS engines failed. edge={last_err}; gemini={e}"
+            )
+
+    audio_b64 = base64.b64encode(audio_bytes).decode("ascii")
 
     if sb is not None:
-        await _store_cache(key, text, audio_b64, voice, language, len(wav_bytes), sb)
+        # Cache only if engine produced bytes
+        await _store_cache(key, text, audio_b64, voice, language, len(audio_bytes), sb)
 
-    return TTSResult(text=text, audio_b64=audio_b64, cached=False, voice=voice, language=language)
+    result = TTSResult(text=text, audio_b64=audio_b64, cached=False, voice=voice, language=language)
+    # Override mime on the model since the BaseModel default is audio/wav
+    result.audio_mime = mime
+    return result
 
 
 def order_phrase(name_ko: str) -> str:

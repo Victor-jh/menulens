@@ -22,8 +22,11 @@ rapidfuzz==3.10.1  # price_sentinel fuzzy 매칭 (D4)
 # Image processing
 Pillow==11.0.0
 
-# TTS — Google Cloud SDK는 미사용 (ADR-009 Gemini TTS 채택). 필요 시 재활성화.
-# google-cloud-texttospeech==2.21.0
+# TTS
+# - Edge TTS: free, no key, unlimited quota (primary)
+# - Gemini TTS: paid quota fallback for premium prosody
+edge-tts==7.2.8
+# google-cloud-texttospeech==2.21.0  # not used (ADR-009)
 
 # Testing
 pytest==8.3.3

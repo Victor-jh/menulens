@@ -1,12 +1,27 @@
 # MenuLens — Project Context
 
 > 모든 새 Claude 세션의 첫 참조 문서. 여기만 읽으면 즉시 온보딩된다.
-> 마지막 업데이트: 2026-04-23 (D3, Cowork)
+> 마지막 업데이트: **2026-04-25 (D5 시점, 코드 D6·D7 선행 완료)**
 
 ---
 
+## 🎯 한 줄 본질 (확정)
+
+> **외국인이 한국 식당 앞에서 멈추는 30초의 망설임을 없애고, 그 망설임이 풀리는 경험을 다시 한국으로 돌려보내는 양방향 신뢰 인프라.**
+
+3-3-3 폐회로:
+- **DECIDE 3초**: 메뉴판/사진 → 색깔 + 사유
+- **ORDER 3초**: 장바구니 → 한국어 TTS → 직원 전달
+- **REVIEW 3초**: 별점 + 코멘트 → 다국어 + 데이터 자산
+
 ## 한 줄 요약
 **찰칵 한 번. 초록색만 주문하세요.** 방한 외국인을 위한 메뉴판 AI 어시스턴트.
+
+## 사업 포지셔닝 (2026-04-25 검토 결과)
+- 공모전 단계: **"도구 + 진흥원 협상권"으로 포지셔닝.** SNS 사업 모델 보류
+- 코드는 review·threads·룰렛 다 작동하나 **마케팅·시연 메시지는 도구 본질에 집중**
+- 평가자가 데모 만져보다 발견하면 발전성 가산점
+- 본업 진로: JH 진흥원 입사 후 internal tool로 발전 (B/C/E 시나리오)
 
 ## 핵심 명제
 - **문제**: 방한 외국인은 한국 식당 앞에서 4가지(메뉴 번역·가격 적정성·알레르기·주문법)를 동시에 몰라 등 돌린다
@@ -54,12 +69,30 @@
 - **예상 총 지출: $0 ~ 최대 5만원**
 
 ## 타임라인 현재 위치
-- **현재**: D3 (2026-04-23 목)
-  - Cowork: Week 2 준비 docs 6건 완성 + 공식 양식·공고문 정합 완료
-  - 맥북: D3 RAG 골격(SQL·로더·profiler) + dry-run 검증 완료 — **실행은 API 키 3종 + 실 CSV + Supabase 프로젝트 블로커**
-- **Hard Gate**: D7 (2026-04-27 월) — PoC 작동 여부로 Go/No-Go (**4일 남음**)
-- **제출 마감**: D16 (2026-05-06 수) 16:00
-- **블로커 처리 책임**: JH 본인 — 공공데이터포털 15129784 활용신청 / Gemini·OpenAI·Anthropic API 키 / Supabase 프로젝트 생성 (상세: `FAILURES.md` D3 재개 체크리스트)
+- **현재**: D5 (2026-04-25 토) — 코드 D6·D7 핵심 부분 선행 완료
+- D3·D4·D5·D6 코드 모두 작동 검증됨 (curl + Chrome MCP E2E PASS)
+- D7 코드 거의 완료, 실 메뉴판 모바일 실측만 남음
+- **Hard Gate**: D7 (2026-04-27 일) — **2일 남음**
+- **제출 마감**: D16 (2026-05-06 수) 16:00 — **11일 남음**
+
+### 🔥 D7 시점 우선순위 (P0)
+1. **TourAPI 4.0 연동 + 식당 위치·관광지 매칭** — 공모전 필수 활용 요건 (현재 미충족, 1차 심사 부적격 위험)
+2. 실 메뉴판 사진 1장 → 모바일 Hard Gate 통과
+3. Vercel + Render 실 배포 (사용자 OAuth 1회)
+4. 시연 영상 1분 30초 시나리오 + 1차 촬영 (D9)
+5. 제안서 1차 초안 5쪽 (D10)
+
+### ✅ 완료된 P0 (이 세션에서)
+- ADR-007: 김치찌개 12,000원 → 🔴 (140%) 정정
+- ADR-008: Gemini gemini-embedding-001 (768d) — OpenAI 회피
+- ADR-009: Gemini TTS (Phase 1) → ADR-010: Edge TTS primary + Gemini fallback (quota 무제한)
+- 백엔드 보안: CORS env 화이트리스트, /health key 누출 제거, items/TTS cap
+- Frontend: viewport, 색맹 라벨(✓!✕), pescatarian, sort toggle, dual-mode OCR
+- Storyteller: cultural context + regional variants + visual photo guess
+- 재료 카드 그리드 + free-side 자동 인식
+- 장바구니 + 매장/포장 + 한국어 TTS + 외화 환산(frankfurter ECB)
+- 리뷰 + 룰렛 + Threads-ready 다국어 + Reviews thread 페이지
+- Toss 디자인: 무채색 카드 + 좌측 컬러 stripe + 2x2 fact grid + 가로 스크롤 태그
 
 ## 핵심 금지 사항 (확산 방지)
 - ❌ 에이전트 추가 (3개로 고정)

@@ -40,7 +40,36 @@
 
 ---
 
-## ADR-007: 2026-04-23 · D4 Canary 기대값을 🔴로 정정 (ADR-002 임계값 유지)
+## ADR-013: 2026-04-25 · 사업 포지셔닝 — "도구 + 진흥원 협상권" 단계 확정
+**결정**: 공모전 단계는 **B2C SNS 사업 모델 보류**, "도구로서 출품작 + JH 진흥원 협상권 자산"으로 포지셔닝.
+**비판적 검토 결과**: SNS 채널 사업 5대 함정 — Cold-start 데드락, Maangchi/Korean Englishman 등 기존 경쟁자 14년 격차, 수익 모델 약함(C2C 광고 미만), Gemini 변동비 적자 구조, 1인 부정 후기 명예훼손 리스크.
+**1년 후 자립 확률**: SNS 사업 5% / 진흥원 협업 35% / 진흥원 입사 internal tool 70%.
+**적용**: review·threads·룰렛 코드는 유지(Phase 2 자산), 시연·제안서 메시지는 30초 폐회로 도구에 집중. 평가자가 데모 만지다 발견하면 발전성 가산점만 확보.
+
+---
+
+## ADR-012: 2026-04-25 · 분식집 무료 사이드 자동 인식
+**결정**: 한국식당 무료 반찬·국·기본찬(김치, 깍두기, 장국, 맑은국 등 25개 키워드) 자동 감지 → free_side_likely 라벨 + + 버튼 마찰(첫 추가 시 confirm).
+**이유**: 음식 사진 모드에서 장국·반찬을 메뉴로 잘못 잡아 주문 카드에 추가하는 사고. 한국 식당 문화(서비스 사이드) 이해가 차별 포인트.
+**구현**: menu_reader Gemini 프롬프트 + backend 사후 사전 매칭 + sessionStorage 한 번만 confirm.
+
+---
+
+## ADR-011: 2026-04-25 · 음식 사진 dual-mode OCR
+**결정**: menu_reader가 (A) 메뉴판 텍스트 + (B) 음식 사진 시각 식별 둘 다 지원. source = menu_text | photo_id 명시.
+**이유**: 외국인은 메뉴판이 없는 환경(식당 입구 음식 모형, 인스타 음식 사진, 식탁 차린 사진)에서도 도구 필요. listed_price 없으면 참가격 8품목 평균(`lookup_benchmark`)을 fallback.
+**구현**: PHOTO MODE 시 raw_text="photo:..." prefix, 다중 음식 식탁 사진은 N개 항목 분리.
+
+---
+
+## ADR-010: 2026-04-25 · TTS Engine Cascade — Edge TTS primary + Gemini fallback
+**결정**: TTS 1순위 Microsoft Edge TTS (무료, 무제한, key 불필요), 2순위 Gemini TTS(quota 한정).
+**이유**: Gemini TTS 무료 quota 분당·일별 제한 도달로 시연 중 502 발생. Edge TTS는 `ko-KR-SunHiNeural` 한국어 자연스러움 우수. ADR-009에서 Gemini만 쓰던 결정 일부 오버라이드.
+**구현**: backend/agents/tts.py `synthesize()` cascade. Supabase tts_cache 그대로 활용.
+
+---
+
+## ADR-009: 2026-04-25 · TTS 프로바이더 — Gemini gemini-2.5-flash-preview-tts (D6 결정 → ADR-010으로 보강)
 **결정**: ROADMAP D4 완료기준 "김치찌개 12000원 → 🟡"을 **🔴로 수정**. ADR-002 임계값(🟢<110%, 🟡 110~130%, 🔴>130%)은 그대로 유지.
 **배경**: Cowork D3 세션에서 ROADMAP.md:47과 ADR-002 임계값 간 모순 발견. 참가격(price.go.kr 2025-12) 김치찌개 평균 8,577원 기준, 12,000원 = 139.9% → 130% 초과 → 🔴가 정합.
 **이유**:

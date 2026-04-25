@@ -38,13 +38,22 @@ load_dotenv(_REPO_ROOT / "backend" / ".env")
 
 from backend.agents.menu_reader import read_menu, MenuReadResult
 from backend.agents.dish_profiler import profile_dish, DishProfile
-from backend.agents.price_sentinel import judge_price, PriceJudgment
+from backend.agents.price_sentinel import judge_price, lookup_benchmark, PriceJudgment
 from backend.agents.verdict import decide, UserProfile, VerdictResult
 from backend.agents.tts import synthesize, order_phrase, TTSResult
+from backend.agents.dish_storyteller import tell_story, DishStory
+from backend.agents.fx import krw_to, ccy_for_language
+from backend.agents.reviews import (
+    ReviewIn,
+    ReviewOut,
+    RewardResult,
+    submit_review,
+    list_recent_reviews,
+)
 
 
 # --- validation constants (P0.4 audit) ------------------------------------
-MAX_MENU_ITEMS = 50          # reject absurd menus before any LLM call
+MAX_MENU_ITEMS = 80          # 분식점/한정식 대응 (Korean diner menus often 50-80 items)
 MAX_ALLERGIES = 20
 MAX_DISH_NAME_LEN = 120
 MAX_TTS_ITEMS = 30           # cap parallel TTS to protect Gemini quota
@@ -106,6 +115,9 @@ class AnalyzedItem(BaseModel):
     tts_cached: bool = False
     dish_profile: Optional[DishProfile] = None
     price_judgment: Optional[PriceJudgment] = None
+    source: str = "menu_text"
+    item_type: str = "menu_item"
+    free_side_likely: bool = False
 
 
 class AnalyzeResponse(BaseModel):
@@ -139,7 +151,11 @@ async def _analyze_one(
 ) -> tuple[DishProfile, Optional[PriceJudgment], VerdictResult, Optional[TTSResult]]:
     """한 메뉴에 대해 dish_profiler + price_sentinel + TTS + verdict 병렬 실행."""
     dish_task = profile_dish(name, user_language=profile.language, user_allergies=profile.allergies)
-    price_task = judge_price(name, price) if price is not None else None
+    # Listed price → judge against benchmark. No price (photo mode) → benchmark-only lookup.
+    if price is not None:
+        price_task = judge_price(name, price)
+    else:
+        price_task = lookup_benchmark(name)
     phrase = order_phrase(name)
     tts_task = synthesize(phrase) if include_tts else None
 
@@ -228,13 +244,12 @@ async def analyze_menu_endpoint(
     except RuntimeError as e:
         raise HTTPException(502, f"Menu reading failed: {e}")
 
-    # P0.3: cost guard — cap item count and TTS generation.
+    # P0.3: cost guard — soft truncate large menus instead of rejecting.
     items_in = menu_result.items
+    truncated_from: Optional[int] = None
     if len(items_in) > MAX_MENU_ITEMS:
-        raise HTTPException(
-            413,
-            f"Menu has {len(items_in)} items; max {MAX_MENU_ITEMS} per request.",
-        )
+        truncated_from = len(items_in)
+        items_in = items_in[:MAX_MENU_ITEMS]
 
     # Filter invalid dish names (possible OCR junk or adversarial input)
     filtered = [it for it in items_in if _valid_dish_name(it.name)]
@@ -264,9 +279,17 @@ async def analyze_menu_endpoint(
             tts_cached=tts.cached if tts else False,
             dish_profile=dish_profile,
             price_judgment=price_judgment,
+            source=getattr(item, "source", "menu_text"),
+            item_type=getattr(item, "item_type", "menu_item"),
+            free_side_likely=getattr(item, "free_side_likely", False),
         ))
 
     warnings = list(menu_result.warnings)
+    if truncated_from:
+        warnings.append(
+            f"메뉴가 많아서 상위 {MAX_MENU_ITEMS}개만 분석했어요 (전체 {truncated_from}개 인식). "
+            f"메뉴판을 두세 부분으로 나눠 다시 찍으면 모두 분석할 수 있어요."
+        )
     if dropped:
         warnings.append(f"Dropped {dropped} items with invalid names (likely OCR noise).")
     if len(filtered) > MAX_TTS_ITEMS:
@@ -278,6 +301,120 @@ async def analyze_menu_endpoint(
         warnings=warnings,
         processing_time_seconds=round(time.time() - start, 2),
     )
+
+
+@app.get("/fx")
+async def fx_endpoint(
+    krw: int,
+    target: Optional[str] = None,
+    language: str = "en",
+):
+    """Convert KRW to a user-friendly currency (frankfurter.app, 6h cache)."""
+    if krw < 0 or krw > 10_000_000:
+        raise HTTPException(400, "krw out of range (0~10,000,000)")
+    ccy = (target or ccy_for_language(language) or "USD").upper()
+    out = await krw_to(krw, ccy)
+    if out is None:
+        raise HTTPException(502, f"Failed to fetch FX rate for {ccy}")
+    return out
+
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = "Kore"
+    language: str = "ko"
+
+
+class TTSResponse(BaseModel):
+    text: str
+    audio_b64: str
+    audio_mime: str = "audio/wav"
+    cached: bool = False
+
+
+@app.post("/tts", response_model=TTSResponse)
+async def tts_endpoint(req: TTSRequest):
+    """Generate speech audio for an arbitrary phrase (used for combined order phrases)."""
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(400, "text is required")
+    if len(text) > 400:
+        raise HTTPException(413, "text too long (max 400 chars)")
+    try:
+        out = await synthesize(text, voice=req.voice or "Kore", language=req.language or "ko")
+    except Exception as e:
+        msg = str(e)
+        # Surface quota/rate-limit clearly so the client can fall back gracefully
+        if "429" in msg or "RESOURCE_EXHAUSTED" in msg or "quota" in msg.lower():
+            raise HTTPException(
+                429,
+                "TTS quota reached. Korean text on the screen still works — show your phone to the staff.",
+            )
+        raise HTTPException(502, f"TTS failed: {msg[:160]}")
+    return TTSResponse(
+        text=out.text,
+        audio_b64=out.audio_b64,
+        audio_mime=out.audio_mime,
+        cached=out.cached,
+    )
+
+
+class ReviewSubmitResponse(BaseModel):
+    review: ReviewOut
+    reward: RewardResult
+
+
+@app.post("/reviews", response_model=ReviewSubmitResponse)
+async def submit_review_endpoint(payload: ReviewIn):
+    """외국인 한식 리뷰 + 즉시 룰렛 보상 (PoC: code only)."""
+    if payload.rating < 1 or payload.rating > 5:
+        raise HTTPException(400, "rating must be 1..5")
+    if payload.language not in ALLOWED_LANGUAGES:
+        raise HTTPException(400, f"Unsupported language: {payload.language}")
+    if payload.comment and len(payload.comment) > 1500:
+        raise HTTPException(413, "comment too long (max 1500 chars)")
+    try:
+        review, reward = await submit_review(payload)
+    except Exception as e:
+        raise HTTPException(502, f"Review submit failed: {e}")
+    return ReviewSubmitResponse(review=review, reward=reward)
+
+
+@app.get("/reviews/recent")
+async def reviews_recent(limit: int = 20):
+    if limit < 1 or limit > 100:
+        raise HTTPException(400, "limit 1..100")
+    return await list_recent_reviews(limit)
+
+
+@app.post("/story", response_model=DishStory)
+async def story_endpoint(
+    name_ko: str = Form(..., description="메뉴명 (한국어)"),
+    language: str = Form("en"),
+    image: Optional[UploadFile] = File(None),
+):
+    """
+    Lazy-loaded LLM enrichment for a single dish.
+    Returns cultural context, typical ingredients, regional variants, optional photo-based region inference.
+    """
+    if language not in ALLOWED_LANGUAGES:
+        raise HTTPException(400, f"Unsupported language: {language}")
+    if not _valid_dish_name(name_ko):
+        raise HTTPException(400, "Invalid dish name")
+
+    img_bytes: Optional[bytes] = None
+    if image is not None:
+        if not image.content_type or not image.content_type.startswith("image/"):
+            raise HTTPException(400, "Image must be an image MIME type")
+        raw = await image.read()
+        if len(raw) > 10 * 1024 * 1024:
+            raise HTTPException(413, "Image too large (max 10MB)")
+        img_bytes = raw
+
+    try:
+        return await tell_story(name_ko=name_ko, language=language, image_bytes=img_bytes)
+    except RuntimeError as e:
+        raise HTTPException(502, f"Storyteller failed: {e}")
 
 
 if __name__ == "__main__":

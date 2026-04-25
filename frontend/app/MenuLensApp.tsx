@@ -1,13 +1,72 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { Upload } from "./components/Upload";
 import { Results } from "./components/Results";
+import { OrderSheet } from "./components/OrderSheet";
+import { ReviewSheet } from "./components/ReviewSheet";
 import { analyzeMenu } from "./lib/api";
-import type { AnalyzeResponse, UserProfile } from "./types";
+import type { AnalyzeResponse, AnalyzedItem, CartItem, UserProfile } from "./types";
 
-type Phase = "onboarding" | "upload" | "loading" | "results";
+// Visible on-device diagnostics for iPhone testing (no Web Inspector needed).
+// Toggle by appending ?debug=1 to the URL.
+function DebugOverlay() {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+  const mountTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    mountTimeRef.current = Date.now();
+    setHydrated(true);
+    setLogs((L) => [...L, `hydrated@${Date.now() - mountTimeRef.current}ms`]);
+
+    const pushLog = (msg: string) =>
+      setLogs((L) => [...L, `${new Date().toLocaleTimeString()} ${msg}`].slice(-10));
+
+    const onErr = (e: ErrorEvent) => pushLog(`ERR: ${e.message}`);
+    const onRej = (e: PromiseRejectionEvent) => pushLog(`REJ: ${String(e.reason).slice(0, 100)}`);
+    const onClick = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      const label = t?.closest("button")?.textContent?.trim().slice(0, 30) || t?.tagName || "?";
+      pushLog(`CLICK ${label}`);
+    };
+    window.addEventListener("error", onErr);
+    window.addEventListener("unhandledrejection", onRej);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("error", onErr);
+      window.removeEventListener("unhandledrejection", onRej);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, []);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
+        background: "rgba(0,0,0,0.85)",
+        color: "#0f0",
+        fontFamily: "monospace",
+        fontSize: 11,
+        padding: 6,
+        maxHeight: 180,
+        overflow: "auto",
+      }}
+    >
+      <div>🩺 MenuLens Diag · hydrated={hydrated ? "✅" : "❌"} · logs:{logs.length}</div>
+      {logs.map((l, i) => (
+        <div key={i}>{l}</div>
+      ))}
+    </div>
+  );
+}
+
+type Phase = "onboarding" | "upload" | "results" | "order" | "review";
 
 const PROFILE_KEY = "menulens.profile.v1";
 
@@ -49,10 +108,44 @@ export function MenuLensApp() {
   const [phase, setPhase] = useState<Phase>("onboarding");
   const [profile, setProfileState] = useState<UserProfile>(DEFAULT_PROFILE);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  const [analyzedFile, setAnalyzedFile] = useState<File | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Hydrate profile after mount (avoid SSR hydration mismatch).
+  const updateCart = (item: AnalyzedItem, delta: number) => {
+    setCart((prev) => {
+      const idx = prev.findIndex((c) => c.name === item.name);
+      if (idx === -1) {
+        if (delta <= 0) return prev;
+        return [
+          ...prev,
+          {
+            name: item.name,
+            translated: item.translated,
+            romanization: item.romanization,
+            listed_price: item.listed_price,
+            color: item.color as CartItem["color"],
+            qty: delta,
+          },
+        ];
+      }
+      const next = [...prev];
+      const newQty = next[idx].qty + delta;
+      if (newQty <= 0) next.splice(idx, 1);
+      else next[idx] = { ...next[idx], qty: newQty };
+      return next;
+    });
+  };
+  const clearCart = () => setCart([]);
+
+  // Load persisted profile once after mount. If it races with a user tap,
+  // we prefer the user's tap (see setProfile — uses functional update below).
   useEffect(() => {
-    setProfileState(loadProfile());
+    const loaded = loadProfile();
+    setProfileState((current) => {
+      // Keep any in-flight user changes that happened before this effect.
+      if (current !== DEFAULT_PROFILE) return current;
+      return loaded;
+    });
   }, []);
 
   const setProfile = (p: UserProfile) => {
@@ -65,19 +158,20 @@ export function MenuLensApp() {
   };
 
   const handleAnalyze = async (file: File) => {
-    setPhase("loading");
-    try {
-      const r = await analyzeMenu(file, profile);
-      setResult(r);
-      setPhase("results");
-    } catch (e) {
-      setPhase("upload");
-      throw e;
-    }
+    // Keep Upload mounted during the request so the user keeps seeing their photo
+    // and any error reported in-place. The Upload component manages its own busy spinner.
+    setAnalyzedFile(file);
+    const r = await analyzeMenu(file, profile);
+    setResult(r);
+    setPhase("results");
   };
+
+  const debugOn =
+    typeof window !== "undefined" && /[?&]debug=1\b/.test(window.location.search);
 
   return (
     <main className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
+      {debugOn && <DebugOverlay />}
       {phase === "onboarding" && (
         <Onboarding
           profile={profile}
@@ -88,16 +182,53 @@ export function MenuLensApp() {
       {phase === "upload" && (
         <Upload onAnalyze={handleAnalyze} onBack={() => setPhase("onboarding")} />
       )}
-      {phase === "loading" && (
-        <div className="flex flex-col items-center justify-center min-h-screen gap-3 p-6">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-zinc-50" />
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Reading the menu… may take up to 10 s
-          </p>
-        </div>
-      )}
       {phase === "results" && result && (
-        <Results data={result} onReset={() => setPhase("upload")} />
+        <Results
+          data={result}
+          imageFile={analyzedFile}
+          language={profile.language}
+          cart={cart}
+          onCartChange={updateCart}
+          onReset={() => setPhase("upload")}
+          onCheckout={() => setPhase("order")}
+        />
+      )}
+      {phase === "order" && (
+        <OrderSheet
+          cart={cart}
+          language={profile.language}
+          onChangeQty={(name, delta) => {
+            const existing = cart.find((c) => c.name === name);
+            if (!existing) return;
+            updateCart(
+              {
+                name,
+                translated: existing.translated ?? null,
+                romanization: existing.romanization ?? null,
+                listed_price: existing.listed_price ?? null,
+                color: existing.color,
+                reasons: [],
+                trigger_flags: [],
+                tts_cached: false,
+              },
+              delta
+            );
+          }}
+          onClear={clearCart}
+          onBack={() => setPhase("results")}
+          onReview={() => setPhase("review")}
+        />
+      )}
+      {phase === "review" && (
+        <ReviewSheet
+          cart={cart}
+          language={profile.language}
+          onBack={() => setPhase("order")}
+          onDone={() => {
+            clearCart();
+            setPhase("upload");
+          }}
+        />
       )}
     </main>
   );

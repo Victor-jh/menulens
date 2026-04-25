@@ -62,14 +62,23 @@
 - **추가 검증**: 비건×물냉면 → 🔴 diet_hard, 알러지×삼계탕 → 🔴 allergen_conflict
 - **실 소요**: 1.5시간 (결정 트리 + E2E 통합)
 
-### D6 — 2026-04-25 (토, D5와 당일) · 통합 백엔드 + TTS ✅ 완료
-- [x] FastAPI `main.py` 오케스트레이션 (D5에서 dish+price+verdict 병렬 완료)
+### D6 — 2026-04-25 (토, D5와 당일) · 통합 백엔드 + TTS + 부가기능 ✅ 완료
+- [x] FastAPI `main.py` 오케스트레이션 (dish+price+verdict 병렬 + 보안 + 비용가드 + 입력검증)
 - [x] `POST /analyze` 엔드포인트 (이미지 + language/allergies/religion/diet Form)
-- [x] **TTS 연동 — Gemini `gemini-2.5-flash-preview-tts`로 결정** (Google Cloud TTS 서비스계정 회피, ADR 후속 추가 예정)
-- [x] 응답 캐싱 (Supabase `tts_cache` 테이블 + sha256 키, 미생성 시 graceful degrade)
-- [ ] Postman end-to-end (실 이미지 미수급으로 보류, `_analyze_one` 단위 E2E는 통과)
-- **완료 기준**: `_analyze_one` 호출 시 dish + price + verdict + TTS WAV(base64) 응답 ✅
-- **추가 단계**: 사용자가 Supabase에서 `backend/db/002_tts_cache.sql` 1회 실행 시 캐시 자동 활성
+- [x] **TTS dual-engine** (ADR-010): Edge TTS primary 무료·무제한 + Gemini fallback
+- [x] 응답 캐싱 (Supabase `tts_cache` graceful degrade)
+- [x] **사진 dual-mode** (ADR-011): 메뉴판 텍스트 + 음식 시각 식별, source 명시
+- [x] **무료 사이드 자동 인식** (ADR-012): 김치/장국/맑은국 등 25개 키워드 사전 + LLM 분류
+- [x] **dish_storyteller**: cultural context + 지역 변형 + visual photo guess (lazy load)
+- [x] **재료 카드 그리드** + 알레르기 매핑 + 매운맛 라벨
+- [x] **장바구니 + 주문 phrase** (매장/포장 토글) + 한국어 TTS 발화
+- [x] **외화 환산** (frankfurter.dev v1, KRW→JPY/USD/CNY/TWD via USD cross-rate)
+- [x] **리뷰 + 룰렛** (5K/COFFEE/STICKER/MAP/NEXT 가중 추첨, sessionStorage 인센티브)
+- [x] **다국어 자동 enrichment** (Gemini 1회 호출로 ko/en/ja/zh 4개 + sentiment + aspects + themes + threads_text)
+- [x] **/reviews thread 페이지** + sentiment 필터 + 다국어 토글 + 통계 배너
+- [x] **Threads 게시 helper** (THREADS_ACCESS_TOKEN 등록 시 자동 publish, 미등록 시 preview-only)
+- **완료 기준**: `_analyze_one` 호출 시 dish + price + verdict + TTS 응답 ✅
+- **수동 1회 작업**: 사용자가 Supabase SQL Editor에서 `backend/db/002_tts_cache.sql` + `003_reviews.sql` 실행 시 영구 저장 활성
 
 ### D7 — 2026-04-25~27 · 🚨 HARD GATE + 프론트엔드 1차
 - [x] Next.js 16 + Turbopack + React 19 + Tailwind 4 셋업 (`frontend/`)
@@ -90,11 +99,17 @@
 
 ## Week 2: 제안서·시연 영상·퇴고
 
-### D8 — 2026-04-28 (월) · UX 개선
-- [ ] 색깔 오버레이 UX 다듬기 (색맹 고려, 아이콘 보조)
-- [ ] 로딩 애니메이션
-- [ ] 오류 처리 (메뉴판 인식 실패 시 "다시 찍어주세요")
-- [ ] 5개 이상 메뉴판 사진으로 실측, 정확도 기록
+### D8 — 2026-04-28 (월) · TourAPI 4.0 + 실 메뉴판 측정
+- [ ] **TourAPI 4.0 연동 — 공모전 필수 활용 (1순위 P0)**
+  - 공공데이터포털 15101578 활용신청
+  - `areaBasedList2`로 식당 근처 검색
+  - `detailIntro2`로 식당 상세 (영업시간·주차·전화)
+  - `searchKeyword2` 다국어 7개 (영·일·중간·중번 등)
+  - 결과 카드에 "📍 근처 식당" 섹션 추가
+- [x] 색맹 라벨 (✓!✕ + SAFE/CAUTION/AVOID + 좌측 stripe) — 이미 적용
+- [x] 로딩 애니메이션 (Upload busy overlay) — 이미 적용
+- [x] 오류 처리 (no items 빈 상태 + 502/timeout 분기) — 이미 적용
+- [ ] 5개 이상 메뉴판 사진으로 실측, 정확도 기록 → `docs/measurement.md`
 
 ### D9 — 2026-04-29 (화) · 시연 영상 1차 촬영
 - [ ] 시연 시나리오 스크립트 (`docs/pitch_deck.md`)

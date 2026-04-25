@@ -12,6 +12,8 @@ export interface DishProfile {
   halal_safe: boolean;
   vegan_safe: boolean;
   vegetarian_safe: boolean;
+  spicy_level?: number | null;
+  category?: string | null;
   match_similarity?: number | null;
   source: string;
 }
@@ -43,6 +45,10 @@ export interface AnalyzedItem {
   tts_cached: boolean;
   dish_profile?: DishProfile | null;
   price_judgment?: PriceJudgment | null;
+  // From menu_reader source classification
+  source?: string;            // "menu_text" | "photo_id"
+  item_type?: string;         // "menu_item" | "free_side" | "drink"
+  free_side_likely?: boolean;
 }
 
 export interface AnalyzeResponse {
@@ -52,11 +58,122 @@ export interface AnalyzeResponse {
   processing_time_seconds: number;
 }
 
+export interface ReviewIn {
+  dish_name: string;
+  dish_name_en?: string | null;
+  rating: number;
+  comment?: string | null;
+  language: string;
+  visit_kind: "dine_in" | "takeout" | "unknown";
+  tags?: string[];
+  visitor_country?: string | null;
+}
+
+export interface ReviewOut {
+  id: number;
+  dish_name: string;
+  dish_name_en?: string | null;
+  rating: number;
+  comment?: string | null;
+  comment_ko?: string | null;
+  comment_en?: string | null;
+  comment_ja?: string | null;
+  comment_zh?: string | null;
+  sentiment?: "positive" | "mixed" | "negative" | "neutral";
+  aspects?: string[];
+  themes?: string[];
+  recommend?: boolean;
+  threads_text?: string | null;
+  threads_post_id?: string | null;
+  threads_status?: "pending" | "posted" | "failed" | "skipped";
+  language: string;
+  visit_kind: string;
+  tags: string[];
+  visitor_country?: string | null;
+  reward_code?: string | null;
+  created_at: string;
+}
+
+export interface RewardResult {
+  code: string;
+  label: string;
+  label_ko: string;
+  description: string;
+  won: boolean;
+  rarity: "common" | "rare" | "jackpot";
+}
+
+export interface ReviewSubmitResponse {
+  review: ReviewOut;
+  reward: RewardResult;
+}
+
+export interface CartItem {
+  name: string;          // original Korean name (used as id)
+  translated?: string | null;
+  romanization?: string | null;
+  listed_price?: number | null;
+  color: Color;
+  qty: number;
+}
+
 export interface UserProfile {
   language: "en" | "ko" | "ja" | "zh-Hans" | "zh-Hant";
   allergies: string[];
   religion: "" | "halal" | "kosher";
   diet: "" | "vegan" | "vegetarian" | "pescatarian";
+}
+
+export interface RegionalVariant {
+  region: string;
+  name?: string | null;
+  distinctive: string;
+}
+
+export interface VisualMatch {
+  likely_region?: string | null;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface IngredientInfo {
+  name_ko: string;
+  name_en?: string | null;
+  icon?: string | null;
+  category: string;
+  description: string;
+  allergen_tags: string[];
+  diet_flags: string[];
+}
+
+export interface DishTags {
+  cuisine: string[];
+  occasion: string[];
+  flavor: string[];
+  social: string[];
+}
+
+export interface FactCards {
+  when_eaten: string;
+  origin: string;
+  pairs_with: string[];
+  why_locals_love_it: string;
+  typical_price_range_won?: string | null;
+  serving_temp: string;
+}
+
+export interface DishStory {
+  name_ko: string;
+  name_en: string;
+  short_description: string;
+  cultural_context: string;
+  typical_ingredients: string[];
+  typical_ingredients_detail: IngredientInfo[];
+  how_to_eat: string;
+  regional_variants: RegionalVariant[];
+  visual_match?: VisualMatch | null;
+  tags: DishTags;
+  fact_cards: FactCards;
 }
 
 export const ALLERGEN_OPTIONS: { key: string; label: string }[] = [

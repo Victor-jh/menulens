@@ -17,6 +17,41 @@
 
 ---
 
+## 2026-04-25 (D5+D6+D7) · 한 세션 안에서 만난 17개 함정 — 다음 세션 같은 실수 방지
+
+### Backend 인프라
+1. **Supabase 새 API 키 포맷 거부** — supabase-py 2.9.1은 JWT만 인정, `sb_publishable_*`/`sb_secret_*` 거부. **해결**: `supabase==2.29.0` 업그레이드. requirements 박제.
+2. **`models/text-embedding-004` v1beta 404** — Google이 v1로 리브랜드. **해결**: `models/gemini-embedding-001` + `output_dimensionality=768` (VECTOR(768) 정합).
+3. **dish_profiler anon 빈 결과** — Supabase RLS가 anon SELECT 차단(묵시적). **해결**: backend는 `SUPABASE_SERVICE_KEY` 우선, anon은 frontend 노출용. 명시적 RLS policy는 D8+ 작업.
+4. **Gemini Vision 30s 타임아웃** — 4032×3024 핸드폰 사진은 매번 timeout. **해결**: 백엔드 60s + frontend 90s + 클라이언트 1600px 리사이즈 + JPEG 0.85 (10MB→500KB).
+5. **분식집 메뉴 78개 cap 50 reject (HTTP 413)** — 김밥천국식 분식점은 50~80개 일반. **해결**: cap 80 + 초과 시 auto-truncate + 한국어 warning.
+
+### TTS 함정
+6. **Gemini TTS 무료 quota 도달 (429 RESOURCE_EXHAUSTED)** — 1~2분 시연에 5~10번 호출하면 연쇄 실패. **해결 (ADR-010)**: Microsoft Edge TTS primary (무료·무제한·`ko-KR-SunHiNeural`), Gemini fallback. `edge-tts` 패키지.
+7. **Frankfurter API KRW base 미지원** — KRW은 ECB 비공식 통화. 또 `frankfurter.app`은 `frankfurter.dev`로 301 redirect, httpx default `follow_redirects=False`라 빈 body. **해결**: `frankfurter.dev/v1/latest?base=USD&symbols=KRW,JPY` cross-rate + `follow_redirects=True`.
+
+### Chrome MCP 함정
+8. **`mcp__Claude_in_Chrome__file_upload` "Not allowed"** — `display:none` input 보안 정책. **해결**: `fetch('/asset.png')` → `Blob` → `File` → `DataTransfer.items.add()` → `input.files = dt.files` → `dispatchEvent(new Event('change', {bubbles:true}))`.
+9. **Supabase 대시보드 MCP 탭에서 JS 미로드** — 재방문 시 monaco editor 안 뜸 (body.innerText=0). **해결**: SQL 파일은 사용자가 수동 1회 실행. tts.py 같은 코드는 graceful degrade로 작동.
+10. **iOS 미러링 좌표가 "알림 센터"로 라우팅** — macOS Sequoia 데스크탑 widget layer가 click hit-test 가로챔. **해결**: 키보드 입력만 가능, click은 우회. iPhone 직접 테스트 필요.
+
+### Frontend 함정
+11. **iOS Safari `display:none` 파일 input click() 차단** — 보안 정책. **해결**: `<label>` 감싸기 패턴 + `class="sr-only"`. button onClick → input.click() 패턴 금지.
+12. **Phase 분리로 Upload 컴포넌트 unmount → 사진 state 사라짐** — `setPhase("loading")` 시 React가 Upload mount 해제, 분석 실패 후 `phase="upload"`로 돌아오면 file=null로 빈 화면. **해결**: phase에서 "loading" 제거, Upload 자체 busy overlay로 처리. file/error state 보존.
+13. **`mounted` gate가 useEffect 미작동 시 영구 spinner** — `mounted=false → return spinner` 패턴. iOS Safari hydration 간헐 실패 시 useEffect 안 돌아 mounted 영원히 false. **해결**: gate 제거, 단순 useState. localStorage race는 functional update로 방어.
+14. **Next dev 번들이 iOS에서 무거움** — HMR + StrictMode + dev runtime이 iOS Safari hydration 지연. **해결**: `npm run build && next start -H 0.0.0.0`. preview-prod config 추가.
+15. **`http://`/`https://` 환경 캐시** — Safari/Chrome dev 캐시가 옛 빌드 보임. **해결**: 매번 `?v=tag` 쿼리 추가. `Cmd+Shift+R` 가이드.
+
+### UX/데이터 함정
+16. **음식 사진 모드 confirm 다이얼로그 도배** — 모든 카드마다 "AI photo ID, verify on menu" → 8개 카드면 8번 confirm. **해결**: 결과 화면 상단 배너 1번 + 카드 라벨 제거. free_side는 `sessionStorage` flag로 첫 한 번만 confirm.
+17. **분식집 장국이 메뉴로 잘못 분류** — Gemini가 "장국"을 메인 메뉴로 식별. 한국 식당 무료 사이드 문화 미반영. **해결**: Gemini 프롬프트에 free_side 분류 명시 + backend 사전 매칭 25개 키워드(김치/장국/맑은국/멸치볶음 등). + 버튼 색 다름 + 첫 추가 시만 confirm.
+
+### 사업·아키텍처 함정
+- **SNS 사업 모델로 pivot 검토 → 5대 함정 발견 (ADR-013)**: Cold-start 데드락, Maangchi/Korean Englishman 14년 격차, 수익 < 변동비, 명예훼손 리스크. → 공모전 단계는 도구 + B2B 데이터 자산 포지셔닝 유지.
+- **빌드 → preview_start 워크플로우** — Next prod는 HMR 없으니 코드 변경 시 매번 `npm run build` + `preview_stop` + `preview_start`. dev로 테스트하다 prod 배포에서 새 버그 발견하지 않게.
+
+---
+
 ## 2026-04-25 · D7 Chrome MCP 파일 업로드 제약 & Supabase 대시보드 렌더 불안정
 **상황**: Chrome MCP로 Supabase SQL Editor에 두 번째 SQL(`002_tts_cache.sql`) 실행 + frontend E2E 업로드 테스트
 **문제**:

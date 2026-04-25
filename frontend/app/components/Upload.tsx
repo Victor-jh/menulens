@@ -7,6 +7,45 @@ interface Props {
   onBack: () => void;
 }
 
+const MAX_DIM = 1600;
+const JPEG_Q = 0.85;
+
+/**
+ * Downscale & re-encode to JPEG so multi-MB phone photos don't time-out Gemini.
+ * Falls back to the original file on failure.
+ */
+async function compressForUpload(file: File): Promise<File> {
+  if (!/^image\//.test(file.type)) return file;
+  if (file.size < 1.2 * 1024 * 1024) return file; // already small enough
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_DIM / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1 && file.size < 3 * 1024 * 1024) return file;
+
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/jpeg", JPEG_Q)
+    );
+    bitmap.close?.();
+    if (!blob || blob.size === 0) return file;
+    return new File(
+      [blob],
+      file.name.replace(/\.[^.]+$/, "") + ".jpg",
+      { type: "image/jpeg", lastModified: Date.now() }
+    );
+  } catch {
+    return file;
+  }
+}
+
 export function Upload({ onAnalyze, onBack }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -26,16 +65,23 @@ export function Upload({ onAnalyze, onBack }: Props) {
     setBusy(true);
     setError(null);
     try {
-      await onAnalyze(file);
+      const optimized = await compressForUpload(file);
+      await onAnalyze(optimized);
     } catch (e) {
       setError((e as Error).message || "Analysis failed");
+      setTimeout(() => {
+        document.querySelector("[data-error-banner]")?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 50);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-md mx-auto p-6">
+    <div className="relative flex flex-col gap-6 max-w-md mx-auto p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Take a photo</h1>
         <button
@@ -67,53 +113,82 @@ export function Upload({ onAnalyze, onBack }: Props) {
         )}
       </div>
 
+      {/*
+        iOS Safari refuses to trigger file inputs with display:none.
+        Label-wrap pattern: tap on the label visually triggers the hidden input
+        natively, which works on all iOS versions.
+      */}
       <div className="grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={() => cameraRef.current?.click()}
-          className="bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 font-semibold rounded-lg py-3 active:scale-[0.99]"
+        <label
+          className="cursor-pointer text-center bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 font-semibold rounded-lg py-3 active:scale-[0.99] select-none"
         >
           📷 Camera
-        </button>
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="border border-zinc-300 dark:border-zinc-700 rounded-lg py-3 font-semibold active:scale-[0.99]"
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            aria-label="Take a photo of the menu"
+            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+          />
+        </label>
+        <label
+          className="cursor-pointer text-center border border-zinc-300 dark:border-zinc-700 rounded-lg py-3 font-semibold active:scale-[0.99] select-none"
         >
           🖼 Upload
-        </button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            aria-label="Upload a menu image from gallery"
+            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+          />
+        </label>
       </div>
-
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-      />
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-      />
 
       {file && (
         <button
           type="button"
           onClick={handleSubmit}
           disabled={busy}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg py-3 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {busy ? "Analyzing... (3-5s)" : "Analyze menu →"}
+          {busy && (
+            <span className="inline-block h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+          )}
+          {busy ? "Reading the menu… up to 30s" : "Analyze menu →"}
         </button>
       )}
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-200 rounded-lg p-3 text-sm">
-          ⚠ {error}
+        <div
+          data-error-banner
+          role="alert"
+          className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-200 rounded-lg p-3 text-sm whitespace-pre-line"
+        >
+          <div className="font-semibold mb-1">⚠ Couldn&apos;t analyze this photo</div>
+          <div className="leading-relaxed">{error}</div>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="mt-2 text-xs underline opacity-80"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Full-card busy overlay so the photo + button stay visible underneath */}
+      {busy && (
+        <div className="pointer-events-none absolute inset-0 rounded-xl bg-white/40 dark:bg-zinc-950/40 flex items-start justify-center pt-32">
+          <div className="flex flex-col items-center gap-2 pointer-events-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg px-5 py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-50" />
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              Reading the menu… up to 30s
+            </p>
+          </div>
         </div>
       )}
     </div>
