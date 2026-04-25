@@ -1,0 +1,27 @@
+# Render.com blueprint (Infrastructure-as-code)
+# 사용: Render 대시보드 → New → Blueprint → 이 저장소 연결
+# Free tier는 15분 idle 후 sleep (cold start 30초 정도) — PoC 시연에는 충분
+services:
+  - type: web
+    name: menulens-backend
+    runtime: docker
+    region: singapore
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_PORT
+        value: 8000
+      # 비밀값은 Render 대시보드에서 수동 설정 — 여기엔 절대 넣지 않음
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false

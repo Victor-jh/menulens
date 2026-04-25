@@ -76,9 +76,11 @@
 - [x] 최소 UI: 온보딩(알레르기 14종 토글·종교·식단·언어) → 업로드(camera/file) → 결과 (색깔 카드)
 - [x] 탭 한 번 → TTS 오디오 재생 (`<audio ref>` + `play()`, base64 data URL)
 - [x] 온보딩 화면 (알레르기·언어·종교·식단)
-- [x] 로컬 dev 서버 양쪽 가동 검증 (Next :3001 + FastAPI :8000)
-- [x] Chrome MCP로 onboarding → upload phase 전환 시각 확인
-- [ ] Vercel 임시 배포 + 모바일 브라우저 테스트 (실 메뉴판 사진 입수 시 진행)
+- [x] 로컬 dev 서버 양쪽 가동 검증 (`preview_start` + `.claude/launch.json`)
+- [x] Chrome MCP로 onboarding → upload → **results** 전체 phase 전환 검증 (합성 메뉴판)
+- [x] 합성 메뉴판 E2E 통과: OCR 98%, 9.3s, 6 items, 🔴🟡🟢 전부 표시, 다중 사유 동시(무슬림+돼지+가격)
+- [x] 배포 아티팩트: `Dockerfile`, `render.yaml`, `frontend/vercel.json`, `docs/deployment.md`
+- [ ] Vercel/Render 실 배포 + 모바일 브라우저 테스트 (사용자 대시보드 로그인 필요)
 - **🚨 Hard Gate 판정 (실 사진 입수 시)**: "실제 메뉴판 사진 → 색깔 3종 표시 + TTS 재생"이 작동하는가?
   - ✅ 작동 → Week 2 계속
   - ❌ 미작동 → **이 자리에서 포기 결정**. 제안서만 제출하거나 불참.
