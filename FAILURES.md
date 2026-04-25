@@ -17,6 +17,45 @@
 
 ---
 
+## 2026-04-26 (D9) · 20번째 함정 — Render Docker 빌드 5초 fail, GitHub deployments API로 진단
+
+**상황**: 사용자가 Vercel + Render 배포 "완료" 보고. Vercel은 정상이지만 Render `https://menulens-backend.onrender.com/health`가 처음엔 404 (`x-render-routing: no-server`), 이후 사용자 manual deploy 후엔 응답 행(60s timeout). 빌드 진행 중인 줄 알고 5분 폴링 → 진전 없음.
+
+**진단 키 — `gh api repos/.../deployments/{id}/statuses`**:
+GitHub Deployments API에 Render webhook이 자동 deploy 결과를 기록한다. 우리 case:
+```
+2026-04-25T16:38:59Z in_progress
+2026-04-25T16:39:41Z failure   ← 42초만에 fail
+```
+Docker 빌드는 정상이면 3~5분. 42초 fail = `pip install` 의존성 해소 단계에서 즉시 죽음.
+
+**진짜 원인 (로컬 `docker build`로 재현)**:
+```
+ERROR: Cannot install -r backend/requirements.txt (line 10), -r ... (line 11), -r ... (line 2),
+       pydantic==2.9.2 and supabase because these package versions have conflicting dependencies.
+```
+- `pydantic==2.9.2`(line 4) vs `supabase==2.29.0`(line 17) vs `anthropic==0.39.0`(line 10) vs `google-generativeai==0.8.3`(line 11) 충돌.
+- 로컬 `.venv`에는 이미 호환 버전 캐시되어 안 보였음. Docker는 PIP_NO_CACHE_DIR=1 fresh resolve → ResolutionImpossible.
+
+**보너스 — Dockerfile shell parsing**: `RUN pip install -r ... google-genai>=1.73`. sh가 `>=1.73`을 redirect로 해석 → stdout이 파일 `=1.73`으로 redirect, pip은 `google-genai`(constraint 없이) 설치. 이번엔 동작했지만 잠재 위험.
+
+**수정**:
+- requirements.txt 핀 버전을 안전 범위로: `pydantic>=2.9,<3` / `anthropic>=0.40,<1` / `google-genai>=1.5,<2` 등
+- Dockerfile: `pip install -r requirements.txt` 단독 (extra package 합치지 말 것), `pip install --upgrade pip` 추가
+
+**검증**:
+- 로컬 `docker build .` → 약 80초 PASS
+- `docker run --env-file backend/.env` → uvicorn 시작, GET /health 200 OK
+- git push → 새 자동 deploy(7e44d0a) 5초 fail 안 함, 정상 빌드 단계 진입
+
+**교훈**:
+- **로컬 venv ≠ Docker 빌드**. Docker 빌드는 항상 fresh resolve. 클라우드 배포 전 `docker build` 한 번 돌려보자.
+- **GitHub Deployments API**는 Render dashboard 접근 없이 deploy 상태 추적 가능 (`gh api repos/{owner}/{repo}/deployments`). webhook 이벤트로 commit→deploy 매핑.
+- **`x-render-routing: no-server`**: Render 서비스 도메인 존재 + 컨테이너 미구동. `502/503`(컨테이너 살아있다 죽었다 함)과 구별.
+- 핀 버전(`==`)은 monolith가 아닐 때 위험. 안전 범위(`>=X,<Y`)가 의존성 해소 충돌 회피에 유리.
+
+---
+
 ## 2026-04-25 (D8 후반) · 19번째 함정 — 다운로드 폴더 파일 오인 + 60분 잘못된 트러블슈팅
 
 **상황**: 사용자가 채팅에 메뉴판 사진 첨부 + "다운로드 폴더에 IMG_0426.heic" 안내. 그 파일이 곧 메뉴판이라고 가정하고 `/analyze` 호출 → 결과는 `Sources: photo_id, items 6` (떡볶이/순대/김밥…). 모델 한계로 오해.
