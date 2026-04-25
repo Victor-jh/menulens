@@ -3,7 +3,7 @@
 > **이 문서는 5분 안에 다음 세션이 따라잡기 위한 단일 요약.**
 > 이거 + AGENTS.md + CONTEXT.md + DECISIONS.md + FAILURES.md + ROADMAP.md만 읽으면 OK.
 
-마지막 업데이트: 2026-04-25 (D5 시점, 실제로는 D6·D7 코드 선행 완료)
+마지막 업데이트: 2026-04-26 (D9 — D8 전 작업 완료, 배포 단계 진입)
 
 ---
 
@@ -17,30 +17,38 @@
 
 ## 📍 현재 위치
 
-- 날짜: D5 (2026-04-25 토)
-- D7 Hard Gate (2026-04-27 일): **2일 남음**
-- 제출 마감 (2026-05-06 수 16:00): **11일 남음**
+- 날짜: D9 (2026-04-26 일)
+- **D7 Hard Gate**: ✅ PASS (2026-04-25 싸다김밥 77/80 메뉴, 36/36 conflict)
+- 제출 마감 (2026-05-06 수 16:00): **10일 남음**
 
-### 작동하는 것 (검증 PASS)
-- 백엔드 5 에이전트: menu_reader (dual-mode) / dish_profiler (RAG) / price_sentinel (cascade) / verdict (severity tree) / tts (Edge+Gemini) / dish_storyteller / reviews (enrich+roulette)
-- 프론트 4 phase: onboarding → upload → results → order → review
+### 작동하는 것 (전체)
+- 백엔드 에이전트: menu_reader(dual-mode) / dish_profiler(RAG) / price_sentinel(cascade) / verdict(severity tree) / tts(Edge+Gemini) / dish_storyteller / reviews(enrich+roulette) / tour_lod(SPARQL) / tour_api(OpenAPI fallback)
+- 프론트 4 phase: onboarding → upload → results(NearbyRestaurants 포함) → order → review
 - `/reviews` thread 페이지 + 다국어 토글 + sentiment 필터
-- E2E (curl + Chrome MCP): 합성 메뉴판 OCR 98%, 6/6 색깔 정확, 다중 사유 동시
-- 보안·비용가드·입력검증·a11y triple-encode·페르소나 3종 대응 모두 적용
+- E2E PASS: 싸다김밥 77/80, OCR 95%, 42.2s, Pescatarian 39🟢/2🟡/36🔴, free_side 14건
+- LOD SPARQL nearby: 서울시청 5건 <800ms (대상해·마이시크릿덴·루이·광화문국밥·만족오향족발)
+- proposal.md 4 sections 완성 (D8 evidence-based 강화, 출처 7개)
+- pitch_deck.md D8 실측 데이터 반영, user_stories.md Yui 페르소나 정합
 
-### 작동하는 것 (D8 추가)
-- **TourAPI 4.0 LOD SPARQL 연동** (ADR-014) — `/restaurants/nearby?source=auto` 키 없이 즉시 작동. BBOX+Haversine, foaf:depiction 사진·ktop:bestMenu 대표메뉴·ktop:tel·ktop:openTime 인라인. canary 서울시청 5건 PASS.
-- `backend/agents/tour_lod.py` (LOD SPARQL) + `tour_api.py` (KorService2 OpenAPI fallback) 두 채널.
-- Frontend `NearbyRestaurants.tsx` Results 페이지 통합, source 배지(LOD/OpenAPI) + cat3 한식/양식 매핑.
+### 배포 URL
+- **Frontend (Vercel)**: https://menulens-app.vercel.app ✅ LIVE
+  - 프로젝트명: `menulens` (victor-jhs-projects 스코프)
+  - NEXT_PUBLIC_API_URL=https://menulens-backend.onrender.com 설정 완료
+  - SSO Protection 해제 완료 (공개 접근 가능)
+- **Backend (Render)**: https://menulens-backend.onrender.com ⚠️ no-server
+  - render.yaml blueprint 연결 완료, 도메인 할당됨
+  - 컨테이너 미구동 — Render 대시보드에서 환경변수 5개 입력 + Manual Deploy 필요
 
-### 미완 (P0)
-1. ✅ TourAPI 연동 충족 (LOD SPARQL로 부적격 위험 해소). OpenAPI 키 발급은 다국어 라벨 보강용 — 우선순위 ↓
-2. 실 메뉴판 사진으로 모바일 Hard Gate 통과
-3. Vercel + Render 실 배포
-4. 시연 영상 1분 30초 (D9 일정)
-5. 제안서 1차 초안 5쪽 (D10 일정) — §3 OpenAPI(REST) + LOD(SPARQL) 이중 활용 강조
-6. 누적 commits push (사용자 명시 승인 필요)
-7. P0 버그 1개 수정: backend `ALLOWED_DIETS`에 `pescatarian` 추가 (FAILURES.md 18번째 함정)
+### 미완 (P0, 오늘~D14)
+1. **Render 백엔드 배포 완료** — 대시보드에서 GEMINI_API_KEY / ANTHROPIC_API_KEY / SUPABASE_URL / SUPABASE_SERVICE_KEY / SUPABASE_ANON_KEY 5개 입력 후 Manual Deploy (아래 §사용자 액션 참조)
+2. 시연 영상 1분 30초 (D9, 4/29 일정)
+3. proposal.md — 시연 영상 YouTube 링크 추가 (D9 후), GitHub public 링크 (D14)
+4. HWP 변환 → PDF 제출 (D11~D13)
+
+### ✅ 완료된 것 (이전 세션)
+- D1~D8 전 코드 완료·검증·push (ea9b777까지 origin/main에 있음)
+- 18번 함정 기록 완료 (pescatarian ALLOWED_DIETS 누락 → 추가됨)
+- ADR-014 확정 (LOD SPARQL 우선, OpenAPI fallback)
 
 ---
 

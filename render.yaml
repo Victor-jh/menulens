@@ -17,7 +17,7 @@ services:
       # CORS는 secret 아님 — yaml-managed로 두면 매번 dashboard 입력 불필요.
       # `*` 포함 항목은 main.py allow_origin_regex로 자동 컴파일됨 (D8 ADR-014).
       - key: CORS_ORIGINS
-        value: http://localhost:3000,http://127.0.0.1:3000,https://menulens.vercel.app,https://menulens-*.vercel.app,https://menulens-*-victor-jh.vercel.app,https://menulens-*-victor-jh-projects.vercel.app
+        value: http://localhost:3000,http://127.0.0.1:3000,https://menulens-app.vercel.app,https://frontend-*.vercel.app,https://menulens-*.vercel.app,https://menulens-*-victor-jh-projects.vercel.app
       # 비밀값은 Render 대시보드에서 수동 설정 — 여기엔 절대 넣지 않음
       - key: GEMINI_API_KEY
         sync: false
