@@ -10,6 +10,7 @@ import type {
   IngredientInfo,
 } from "../types";
 import { fetchStory } from "../lib/api";
+import { NearbyRestaurants } from "./NearbyRestaurants";
 
 // Toss principle: card body is neutral; severity expressed via a left stripe + badge.
 const COLOR_STRIPE: Record<Color, string> = {
@@ -154,6 +155,9 @@ export function Results({
           ))}
         </ul>
       )}
+
+      {/* Nearby restaurants — TourAPI 4.0 (graceful when key absent) */}
+      <NearbyRestaurants language={language} />
 
       {/* Sticky cart bar (Toss BottomCTA pattern) */}
       {totalQty > 0 && (

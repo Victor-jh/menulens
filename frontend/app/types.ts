@@ -176,6 +176,47 @@ export interface DishStory {
   fact_cards: FactCards;
 }
 
+export interface NearbyRestaurant {
+  content_id: string;
+  title: string;
+  addr: string;
+  addr_detail?: string | null;
+  mapx?: number | null;   // longitude
+  mapy?: number | null;   // latitude
+  distance_m?: number | null;
+  first_image?: string | null;
+  first_image_thumbnail?: string | null;
+  tel?: string | null;
+  cat3?: string | null;
+}
+
+export type NearbyStatus = "ok" | "missing_key" | "upstream_error" | "no_results";
+
+export interface NearbyResponse {
+  status: NearbyStatus;
+  source: "lod" | "openapi";
+  items: NearbyRestaurant[];
+  total_count: number;
+  message?: string | null;
+  language_used: string;
+  radius_m: number;
+  center_lat: number;
+  center_lon: number;
+}
+
+export interface RestaurantDetail {
+  content_id: string;
+  operating_hours?: string | null;
+  rest_date?: string | null;
+  info_center?: string | null;
+  parking?: string | null;
+  seat?: string | null;
+  first_menu?: string | null;
+  signature_menu?: string | null;
+  smoking?: string | null;
+  reservation?: string | null;
+}
+
 export const ALLERGEN_OPTIONS: { key: string; label: string }[] = [
   { key: "pork",      label: "🐖 Pork" },
   { key: "beef",      label: "🐄 Beef" },

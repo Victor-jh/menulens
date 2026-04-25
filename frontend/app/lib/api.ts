@@ -1,6 +1,8 @@
 import type {
   AnalyzeResponse,
   DishStory,
+  NearbyResponse,
+  RestaurantDetail,
   ReviewIn,
   ReviewOut,
   ReviewSubmitResponse,
@@ -125,6 +127,47 @@ export async function fetchRecentReviews(limit = 10): Promise<ReviewOut[]> {
   const res = await fetch(`${API_BASE}/reviews/recent?limit=${limit}`, { cache: "no-store" });
   if (!res.ok) return [];
   return (await res.json()) as ReviewOut[];
+}
+
+export async function fetchNearbyRestaurants(
+  lat: number,
+  lon: number,
+  language: string,
+  radius = 500,
+  limit = 8
+): Promise<NearbyResponse | null> {
+  const url =
+    `${API_BASE}/restaurants/nearby` +
+    `?lat=${lat.toFixed(6)}` +
+    `&lon=${lon.toFixed(6)}` +
+    `&radius=${radius}` +
+    `&language=${encodeURIComponent(language)}` +
+    `&limit=${limit}`;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 12_000);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, cache: "no-store" });
+    if (!res.ok) return null;
+    return (await res.json()) as NearbyResponse;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function fetchRestaurantDetail(
+  contentId: string,
+  language: string
+): Promise<RestaurantDetail | null> {
+  const url = `${API_BASE}/restaurants/${encodeURIComponent(contentId)}?language=${encodeURIComponent(language)}`;
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    return (await res.json()) as RestaurantDetail;
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchStory(

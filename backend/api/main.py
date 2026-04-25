@@ -50,6 +50,8 @@ from backend.agents.reviews import (
     submit_review,
     list_recent_reviews,
 )
+from backend.agents import tour_api as _tour_api
+from backend.agents import tour_lod as _tour_lod
 
 
 # --- validation constants (P0.4 audit) ------------------------------------
@@ -59,7 +61,7 @@ MAX_DISH_NAME_LEN = 120
 MAX_TTS_ITEMS = 30           # cap parallel TTS to protect Gemini quota
 ALLOWED_LANGUAGES = {"en", "ko", "ja", "zh-Hans", "zh-Hant"}
 ALLOWED_RELIGIONS = {"", "halal", "kosher"}
-ALLOWED_DIETS = {"", "vegan", "vegetarian"}
+ALLOWED_DIETS = {"", "vegan", "vegetarian", "pescatarian"}
 # Strict allergen allowlist (verdict.py ALLERGENS_14 + a small stable set)
 ALLOWED_ALLERGENS = {
     "pork", "beef", "chicken", "seafood", "fish", "shellfish",
@@ -385,6 +387,186 @@ async def reviews_recent(limit: int = 20):
     if limit < 1 or limit > 100:
         raise HTTPException(400, "limit 1..100")
     return await list_recent_reviews(limit)
+
+
+class NearbyRestaurantOut(BaseModel):
+    content_id: str
+    title: str
+    addr: str
+    addr_detail: Optional[str] = None
+    mapx: Optional[float] = None
+    mapy: Optional[float] = None
+    distance_m: Optional[int] = None
+    first_image: Optional[str] = None
+    first_image_thumbnail: Optional[str] = None
+    tel: Optional[str] = None
+    cat3: Optional[str] = None
+
+
+class NearbyResponse(BaseModel):
+    status: str  # ok | missing_key | upstream_error | no_results
+    source: str = "lod"  # "lod" | "openapi"
+    items: list[NearbyRestaurantOut] = []
+    total_count: int = 0
+    message: Optional[str] = None
+    language_used: str = "en"
+    radius_m: int = 0
+    center_lat: float
+    center_lon: float
+
+
+class RestaurantDetailOut(BaseModel):
+    content_id: str
+    operating_hours: Optional[str] = None
+    rest_date: Optional[str] = None
+    info_center: Optional[str] = None
+    parking: Optional[str] = None
+    seat: Optional[str] = None
+    first_menu: Optional[str] = None
+    signature_menu: Optional[str] = None
+    smoking: Optional[str] = None
+    reservation: Optional[str] = None
+
+
+# Korean peninsula bounding box (33~39N, 124~132E) — covers Jeju to Dokdo.
+_LAT_MIN, _LAT_MAX = 33.0, 39.0
+_LON_MIN, _LON_MAX = 124.0, 132.0
+
+
+_ALLOWED_SOURCES = {"lod", "openapi", "auto"}
+
+
+def _to_nearby_out(items) -> list[NearbyRestaurantOut]:
+    return [
+        NearbyRestaurantOut(
+            content_id=r.content_id,
+            title=r.title,
+            addr=r.addr,
+            addr_detail=r.addr_detail,
+            mapx=r.mapx,
+            mapy=r.mapy,
+            distance_m=r.distance_m,
+            first_image=r.first_image,
+            first_image_thumbnail=r.first_image_thumbnail,
+            tel=r.tel,
+            cat3=r.cat3,
+        )
+        for r in items
+    ]
+
+
+@app.get("/restaurants/nearby", response_model=NearbyResponse)
+async def restaurants_nearby_endpoint(
+    lat: float,
+    lon: float,
+    radius: int = 500,
+    language: str = "en",
+    limit: int = 10,
+    source: str = "auto",
+):
+    """
+    Restaurants within `radius` of (lat, lon).
+
+    Two sources, swappable via `source`:
+      - "lod"     LOD SPARQL endpoint (no key, rich metadata, KO-only labels)
+      - "openapi" KorService2 locationBasedList2 (multilingual, needs serviceKey)
+      - "auto"    LOD first; on miss + valid OpenAPI key, fall back to OpenAPI
+
+    LOD is the default for "auto" because it's always reachable and ships
+    photos + opening hours + signature menu inline (richer than KorService2).
+    """
+    if language not in ALLOWED_LANGUAGES:
+        raise HTTPException(400, f"Unsupported language: {language}")
+    if source not in _ALLOWED_SOURCES:
+        raise HTTPException(400, f"source must be one of {sorted(_ALLOWED_SOURCES)}")
+    if not (_LAT_MIN <= lat <= _LAT_MAX) or not (_LON_MIN <= lon <= _LON_MAX):
+        raise HTTPException(400, "Coordinates outside Korea bounding box")
+    if radius < 100 or radius > 20000:
+        raise HTTPException(400, "radius must be in [100, 20000]")
+    if limit < 1 or limit > 30:
+        raise HTTPException(400, "limit must be in [1, 30]")
+
+    used_source = "lod"
+    if source == "openapi":
+        result = await _tour_api.search_nearby_restaurants(
+            lat=lat, lon=lon, radius=radius, language=language, num_of_rows=limit
+        )
+        used_source = "openapi"
+    elif source == "lod":
+        result = await _tour_lod.search_nearby_via_lod(
+            lat=lat, lon=lon, radius=radius, language=language, num_of_rows=limit
+        )
+    else:  # auto
+        result = await _tour_lod.search_nearby_via_lod(
+            lat=lat, lon=lon, radius=radius, language=language, num_of_rows=limit
+        )
+        if result.status != "ok":
+            api_result = await _tour_api.search_nearby_restaurants(
+                lat=lat, lon=lon, radius=radius, language=language, num_of_rows=limit
+            )
+            if api_result.status == "ok":
+                result = api_result
+                used_source = "openapi"
+
+    return NearbyResponse(
+        status=result.status,
+        source=used_source,
+        items=_to_nearby_out(result.items),
+        total_count=result.total_count,
+        message=result.message,
+        language_used=result.language_used,
+        radius_m=result.radius_m,
+        center_lat=lat,
+        center_lon=lon,
+    )
+
+
+_CONTENT_ID_RE = re.compile(r"^[0-9]{1,20}$")
+
+
+@app.get("/restaurants/{content_id}", response_model=RestaurantDetailOut)
+async def restaurant_detail_endpoint(
+    content_id: str,
+    language: str = "en",
+    source: str = "auto",
+):
+    """
+    Restaurant detail — operating hours, parking, signature menu.
+
+    `source="auto"` tries LOD first (richer ktop:openTime / ktop:bestMenu),
+    then falls back to OpenAPI detailIntro2 if LOD has no record.
+    """
+    if language not in ALLOWED_LANGUAGES:
+        raise HTTPException(400, f"Unsupported language: {language}")
+    if source not in _ALLOWED_SOURCES:
+        raise HTTPException(400, f"source must be one of {sorted(_ALLOWED_SOURCES)}")
+    if not _CONTENT_ID_RE.match(content_id):
+        raise HTTPException(400, "Invalid content_id")
+
+    detail = None
+    if source == "openapi":
+        detail = await _tour_api.restaurant_detail(content_id, language=language)
+    elif source == "lod":
+        detail = await _tour_lod.restaurant_detail_via_lod(content_id, language=language)
+    else:  # auto
+        detail = await _tour_lod.restaurant_detail_via_lod(content_id, language=language)
+        if detail is None:
+            detail = await _tour_api.restaurant_detail(content_id, language=language)
+
+    if detail is None:
+        raise HTTPException(404, "Restaurant detail unavailable")
+    return RestaurantDetailOut(
+        content_id=detail.content_id,
+        operating_hours=detail.operating_hours,
+        rest_date=detail.rest_date,
+        info_center=detail.info_center,
+        parking=detail.parking,
+        seat=detail.seat,
+        first_menu=detail.first_menu,
+        signature_menu=detail.signature_menu,
+        smoking=detail.smoking,
+        reservation=detail.reservation,
+    )
 
 
 @app.post("/story", response_model=DishStory)

@@ -40,6 +40,39 @@
 
 ---
 
+## ADR-014: 2026-04-25 (D8) · TourAPI 4.0 — LOD SPARQL 우선 + OpenAPI fallback
+
+**결정**: `/restaurants/nearby` 1순위 데이터 소스를 **한국관광공사 LOD SPARQL endpoint** (`http://data.visitkorea.or.kr/sparql`)로 채택. KorService2 OpenAPI는 키 발급 후 보강용 (`source=openapi` 또는 `source=auto`에서 LOD miss 시 fallback).
+
+**배경**: D7~D8 진입 시 OpenAPI(15101578) 활용신청은 사용자 미발급 상태. LOD endpoint를 점검한 결과:
+- 인증키 불필요, CC BY-SA 3.0 (상업적 이용 OK)
+- 3,280,524 triples / 1,472,381 entities — 그중 `kto:Gastro` 인스턴스 15,531개 (subclass: KoreanRestaurant 9,712 / Western 875 / Chinese 692 / Japanese 613 / Unique 250 / FoodAndBeverage 51)
+- 한 식당당 메타가 OpenAPI보다 풍부: `rdfs:label` / `wgs:lat`·`long` / `dc:description` / `foaf:depiction`(사진 다중) / `ktop:tel`·`openTime`·`restDate`·`bestMenu`·`parking`·`creditCard`·`smokingSectionAvailable`·`category`
+- 응답 < 800ms (BBOX FILTER → top-N)
+
+**선택 기술**:
+- saltlux 확장 `geo:nearby(lat lon r)`는 우리 endpoint에서 빈 결과 → 표준 `FILTER` BBOX + 후처리 Haversine 거리 정렬 (portable, 의존 0)
+- BBOX 반경 m → degrees 변환은 local-flat-Earth 근사: Δlat ≈ r/111320, Δlng ≈ r/(111320·cos(lat))
+
+**이유**:
+1. **즉시 작동**: 키 발급 lag 0. D7 Hard Gate 가시화 즉시.
+2. **풍부 메타 + 사진 인라인**: 시연 영상에서 nearby 카드에 thumbnail 즉시 노출 — OpenAPI는 firstimage가 절반 이상 누락.
+3. **차별화**: SESSION_HANDOFF.md "LOD SPARQL · 역대 수상작 최초 활용" 자산을 코드로 실현. 데이터 활용도(20점) + 발전성(20점) 동시 가산.
+4. **graceful chain**: `source=auto`(default) → LOD 우선, miss + key 보유 시 OpenAPI fallback. 사용자가 키 발급해도 동일 코드 경로 재사용.
+
+**한계**:
+- LOD 라벨이 한국어 위주(다국어 분포 검증 timeout) — 외국인 시연에 영향. 대안: dish_storyteller 패턴으로 표시 직전 즉석 다국어 변환 (Phase 2). 시연 영상 1분 30초 시나리오에는 한국어 식당명이 오히려 "현지" 임팩트 ↑.
+- LOD 쿼리 결과가 SPARQL LIMIT의 비결정성으로 호출마다 candidate 셋이 미세 변동 가능 — 안정 정렬 위해 BBOX candidate 수를 num_of_rows×5(min 30)로 받고 Haversine 정렬 후 top-N.
+
+**취소 가능성**: OpenAPI 키 발급 + 다국어 7개 서비스(Eng/Jpn/Chs/Cht) 확보 후 외국인 시연 영문 라벨이 결정적이면 `source=auto` 정책에서 `language≠ko` 시 OpenAPI 우선으로 토글 검토.
+
+**구현**:
+- `backend/agents/tour_lod.py` (신규): `search_nearby_via_lod()` / `restaurant_detail_via_lod()`. NearbyResult / Restaurant / RestaurantDetail dataclass는 `tour_api.py`에서 import해 swap-able.
+- `backend/api/main.py`: `/restaurants/nearby?source=auto|lod|openapi`, `/restaurants/{content_id}?source=...`. NearbyResponse에 `source` 필드 추가.
+- `frontend/app/components/NearbyRestaurants.tsx`: 결과 footer에 "LOD SPARQL" / "OpenAPI" 배지로 출처 명시 (심사자에게 데이터 활용도 가시화). cat3 코드 → "한식/양식/일식/중식/이색음식점/카페·전통찻집" 매핑.
+
+---
+
 ## ADR-013: 2026-04-25 · 사업 포지셔닝 — "도구 + 진흥원 협상권" 단계 확정
 **결정**: 공모전 단계는 **B2C SNS 사업 모델 보류**, "도구로서 출품작 + JH 진흥원 협상권 자산"으로 포지셔닝.
 **비판적 검토 결과**: SNS 채널 사업 5대 함정 — Cold-start 데드락, Maangchi/Korean Englishman 등 기존 경쟁자 14년 격차, 수익 모델 약함(C2C 광고 미만), Gemini 변동비 적자 구조, 1인 부정 후기 명예훼손 리스크.
