@@ -17,6 +17,23 @@
 
 ---
 
+## 2026-04-25 (D8 시작) · 18번째 함정 — frontend/backend allowed-values 드리프트
+
+**상황**: D7 P0 감사에서 frontend `types.ts:124`의 `UserProfile.diet`에 `"pescatarian"` 추가했지만 backend `main.py` `ALLOWED_DIETS = {"", "vegan", "vegetarian"}`에는 누락. 사용자 onboarding에서 Pescatarian 선택 → localStorage 저장 → /analyze 호출 시 매번 `400 Unsupported diet: pescatarian`. 사용자 입장에선 "서버가 작동 안 하는" 것처럼 보임.
+
+**문제**: verdict.py(line 141~148)는 pescatarian 완전 지원 — 누락된 곳은 입력 검증 1줄. 두 layer가 enum을 각자 들고 있고 단일 출처가 없어 한쪽만 추가됨.
+
+**해결**: `ALLOWED_DIETS = {"", "vegan", "vegetarian", "pescatarian"}` (1라인). canary `/analyze ... -F diet=pescatarian` → 200.
+
+**교훈**:
+- frontend/backend가 enum/literal을 따로 정의하면 한쪽만 늘어나는 사고가 반드시 일어남. 같은 검증 정책이 verdict.py·types.ts·main.py 3곳에 흩어져 있음.
+- 다음 enum 추가 시 grep checklist: `grep -RIn "<new_value>"` 후 frontend·backend 양쪽 hit 확인.
+- 페르소나 시연 직전 localStorage에 프로필이 미리 박혀 있으면 새 빌드 즉시 수치 잘못 보일 수 있음 — onboarding "초기화" 진입로가 있는지 확인. (현재 Onboarding 화면 자체로 회귀 가능)
+
+**조사 흐름이 빨랐던 이유**: snapshot의 alert 노드(`서버 응답 오류 400: ...`)가 정확한 backend 응답을 그대로 노출. UI에 raw error를 살짝 보이게 두는 D7 결정이 디버깅 시간 1/10로 줄임.
+
+---
+
 ## 2026-04-25 (D5+D6+D7) · 한 세션 안에서 만난 17개 함정 — 다음 세션 같은 실수 방지
 
 ### Backend 인프라

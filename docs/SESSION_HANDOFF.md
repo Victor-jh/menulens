@@ -28,13 +28,19 @@
 - E2E (curl + Chrome MCP): 합성 메뉴판 OCR 98%, 6/6 색깔 정확, 다중 사유 동시
 - 보안·비용가드·입력검증·a11y triple-encode·페르소나 3종 대응 모두 적용
 
+### 작동하는 것 (D8 추가)
+- **TourAPI 4.0 LOD SPARQL 연동** (ADR-014) — `/restaurants/nearby?source=auto` 키 없이 즉시 작동. BBOX+Haversine, foaf:depiction 사진·ktop:bestMenu 대표메뉴·ktop:tel·ktop:openTime 인라인. canary 서울시청 5건 PASS.
+- `backend/agents/tour_lod.py` (LOD SPARQL) + `tour_api.py` (KorService2 OpenAPI fallback) 두 채널.
+- Frontend `NearbyRestaurants.tsx` Results 페이지 통합, source 배지(LOD/OpenAPI) + cat3 한식/양식 매핑.
+
 ### 미완 (P0)
-1. **TourAPI 4.0 연동** — 공모전 필수, **부적격 위험**
+1. ✅ TourAPI 연동 충족 (LOD SPARQL로 부적격 위험 해소). OpenAPI 키 발급은 다국어 라벨 보강용 — 우선순위 ↓
 2. 실 메뉴판 사진으로 모바일 Hard Gate 통과
 3. Vercel + Render 실 배포
 4. 시연 영상 1분 30초 (D9 일정)
-5. 제안서 1차 초안 5쪽 (D10 일정)
+5. 제안서 1차 초안 5쪽 (D10 일정) — §3 OpenAPI(REST) + LOD(SPARQL) 이중 활용 강조
 6. 누적 commits push (사용자 명시 승인 필요)
+7. P0 버그 1개 수정: backend `ALLOWED_DIETS`에 `pescatarian` 추가 (FAILURES.md 18번째 함정)
 
 ---
 
