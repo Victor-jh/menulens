@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt /app/backend/requirements.txt
-RUN pip install -r backend/requirements.txt google-genai>=1.73
+RUN pip install --upgrade pip && pip install -r backend/requirements.txt
 
 COPY backend /app/backend
 COPY tests/fixtures /app/tests/fixtures
