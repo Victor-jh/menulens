@@ -103,6 +103,18 @@ npm install
 npm run dev
 ```
 
+### E2E Smoke Test (촬영/제출 직전 5분 점검)
+
+```bash
+# 로컬 backend
+pytest tests/test_smoke_e2e.py -v
+
+# 프로덕션 (Render)
+MENULENS_API=https://menulens-backend.onrender.com pytest tests/test_smoke_e2e.py -v
+```
+
+8개 테스트: /health, Hermes 라우터, Chen nuts 알러지, LOD nearby graceful, dish_finder, FX, CORS, latency. 8/8 PASS = stack 정상.
+
 ## ✅ Hard Gate 검증 결과 (D8, 2026-04-25)
 
 서울 연신내역 분식점 메뉴판 80개 메뉴 stress 케이스:
