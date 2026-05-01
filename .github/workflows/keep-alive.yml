@@ -1,0 +1,41 @@
+# Render free tier sleeps after 15 min idle (cold start ~30s).
+# This cron pings /health every 13 min to keep the demo URL warm during
+# evaluation period (D11~D14 + 예비심사). GitHub Actions cron has known
+# reliability variance — runs may be skipped under load — so 13-min cadence
+# gives us multiple chances per 30-min window. Cheap insurance.
+#
+# Why not Vercel cron? Vercel Hobby plan is limited to ONCE PER DAY
+# (https://vercel.com/docs/cron-jobs/usage-and-pricing — "Hobby accounts
+# are limited to cron jobs that run once per day. Cron expressions that
+# would run more frequently will fail during deployment.")
+# Per-minute cron requires Pro plan. GitHub Actions free tier supports
+# 5-min granularity within our 2,000-min/month budget.
+#
+# Free tier limit: 2,000 minutes/month (Hobby). This workflow uses ~5s/run
+# × ~110 runs/day = 9 min/day = 270 min/month. Well within budget.
+#
+# Disable post-submission to save quota.
+name: keep-render-alive
+
+on:
+  schedule:
+    - cron: "*/13 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: ping /health
+        run: |
+          set -e
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/r.txt -w "%{http_code}" --max-time 45 \
+              https://menulens-backend.onrender.com/health || echo 000)
+            echo "attempt=$i code=$code body=$(cat /tmp/r.txt)"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 10
+          done
+          echo "::warning::Render ping failed 3 attempts — service may be down or restarting"
+          exit 0  # don't fail the workflow on transient errors
