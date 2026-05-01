@@ -163,6 +163,13 @@ def _parse_items(payload: dict) -> tuple[list[dict], int]:
 
 
 def _restaurant_from_item(it: dict) -> Optional[Restaurant]:
+    """Parse a single TourAPI response row into the internal Restaurant model.
+
+    TourAPI 4.0 responses use mixed-case keys (`contentid`, `firstimage2`,
+    `mapx`/`mapy` for lng/lat, `dist` for distance) and may emit empty strings
+    for missing fields. Returns None if either ``contentid`` or ``title`` is
+    missing — both are required for downstream cache/dispatch.
+    """
     cid = _to_str(it.get("contentid"))
     title = _to_str(it.get("title"))
     if not cid or not title:
@@ -183,6 +190,14 @@ def _restaurant_from_item(it: dict) -> Optional[Restaurant]:
 
 
 async def _get_json(url: str, params: dict) -> Optional[dict]:
+    """Single GET against the TourAPI endpoint with JSON parse safeguard.
+
+    Caller is responsible for inserting `serviceKey` into params; this helper
+    only handles the HTTP round-trip and the (occasional) HTML fallback that
+    TourAPI returns when the underlying service is overloaded. Returns None
+    for non-JSON responses so the caller can fall back gracefully instead of
+    raising into the FastAPI route.
+    """
     async with httpx.AsyncClient(
         timeout=_DEFAULT_TIMEOUT, follow_redirects=True
     ) as client:

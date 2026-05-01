@@ -81,6 +81,16 @@ class FactCards(BaseModel):
 
 
 class DishStory(BaseModel):
+    """Public response shape for /story endpoint.
+
+    Consumers (frontend `DishDetail` panel, future Phase 2 single_dish UX)
+    should treat the `*_detail` and `fact_cards` fields as the canonical
+    source of truth. The flat `cultural_context` / `typical_ingredients`
+    / `how_to_eat` strings are kept for v1 compatibility but slated for
+    deprecation — the structured equivalents render better on mobile and
+    survive translation more cleanly.
+    """
+
     name_ko: str
     name_en: str
     short_description: str = Field(..., description="한 문장 요약")

@@ -178,6 +178,15 @@ async def find_restaurants_by_dish(
     query = _build_by_dish_query(dish_ko, max(limit * 3, 20))
 
     def _serve_stale_or_error(reason: str) -> DishFinderResult:
+        """Closure: serve a stale cached response if available, else propagate
+        the upstream error.
+
+        Captures `cached`, `now`, `dish_ko`, `language` from the enclosing
+        scope so the SPARQL try/except site can call it with just the error
+        reason. Stale-cache shows '⏳ N분 전 캐시' so the user knows the
+        data isn't real-time but the UI still has content (preferable to a
+        blank section during periodic Visit Korea LOD outages).
+        """
         if cached:
             stale_age = int(now - cached[0])
             return DishFinderResult(
