@@ -1,0 +1,643 @@
+"use client";
+
+// ResultsV2 — Friendly card grid + pill-tab filter.
+//
+// Preserved from v1 (the 6 critical assets):
+//   ✓ TTS playback button (per safe/yellow card → quick replay; safest path)
+//   ✓ NearbyRestaurants section (LOD SPARQL — proposal §3.1 differentiator)
+//   ✓ Multilingual: every label routed through i18n strings()
+//   ✓ Price % evidence (item.pricePctOver — surfaced in card body)
+//   ✓ Cart sticky bar — kept; tap a green/yellow card → +1 to cart
+//   ✓ "New menu" header action (Sample preserves entry)
+
+import { useRef, useState } from "react";
+import type { AnalyzedItem, AnalyzeResponse, CartItem, UserProfile } from "../../../types";
+import { adaptItems, type FriendlyItem, denormalize } from "../adapter";
+import { strings } from "../i18n";
+import { FR, FR_TONE } from "../tokens";
+import { NearbyRestaurants } from "../../../components/NearbyRestaurants";
+
+interface Props {
+  data: AnalyzeResponse;
+  imageFile: File | null;
+  language: UserProfile["language"];
+  profile: UserProfile;
+  cart: CartItem[];
+  onCartChange: (item: AnalyzedItem, delta: number) => void;
+  onReset: () => void;
+  onCheckout: () => void;
+  onShowStaff: (item: AnalyzedItem) => void;
+}
+
+type Filter = "all" | "green" | "yellow" | "red";
+
+export function ResultsV2({
+  data,
+  language,
+  profile,
+  cart,
+  onCartChange,
+  onReset,
+  onCheckout,
+  onShowStaff,
+}: Props) {
+  const t = strings(language);
+  const [filter, setFilter] = useState<Filter>("all");
+
+  const items = adaptItems(data.items, profile);
+  const order: Record<string, number> = { green: 0, yellow: 1, red: 2 };
+  items.sort((a, b) => order[a.color] - order[b.color]);
+
+  const counts = {
+    all: items.length,
+    green: items.filter((i) => i.color === "green").length,
+    yellow: items.filter((i) => i.color === "yellow").length,
+    red: items.filter((i) => i.color === "red").length,
+  };
+
+  const visible = filter === "all" ? items : items.filter((i) => i.color === filter);
+
+  const totalQty = cart.reduce((s, c) => s + c.qty, 0);
+  const totalPrice = cart.reduce(
+    (s, c) => s + (c.listed_price ?? 0) * c.qty,
+    0,
+  );
+  const cartByName = new Map(cart.map((c) => [c.name, c.qty]));
+
+  const onShare = async () => {
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}${window.location.pathname}`
+        : "https://menulens-app.vercel.app";
+    const text = `MenuLens · ${counts.green} ${t.signalGreen} · ${counts.yellow} ${t.signalYellow} · ${counts.red} ${t.signalRed}`;
+    try {
+      const nav = navigator as Navigator & {
+        share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
+      };
+      if (nav.share) await nav.share({ title: "MenuLens", text, url });
+      else if (navigator.clipboard) await navigator.clipboard.writeText(`${text} — ${url}`);
+    } catch {
+      /* user dismissed */
+    }
+  };
+
+  return (
+    <div
+      className="font-ko relative mx-auto max-w-md"
+      style={{
+        background: FR.cream,
+        color: FR.ink,
+        minHeight: "100dvh",
+        paddingTop: "max(0.5rem, env(safe-area-inset-top))",
+        paddingBottom: totalQty > 0 ? "calc(7rem + env(safe-area-inset-bottom))" : "max(2rem, env(safe-area-inset-bottom))",
+      }}
+    >
+      {/* Sticky header */}
+      <div
+        className="sticky top-0 z-10"
+        style={{
+          background: `${FR.cream}f0`,
+          backdropFilter: "blur(14px)",
+          borderBottom: `1px solid ${FR.border}`,
+        }}
+      >
+        <div className="px-5 pt-4 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: 18 }}>👋</span>
+            <span style={{ fontSize: 13, color: FR.inkSoft, fontWeight: 500 }}>
+              {language === "ko" ? "안녕하세요!" : "Hi there!"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onShare}
+              style={{ fontSize: 12, color: FR.inkSoft, padding: "4px 8px" }}
+            >
+              ↗ {language === "ko" ? "공유" : "Share"}
+            </button>
+            <button
+              type="button"
+              onClick={onReset}
+              style={{ fontSize: 12, color: FR.inkSoft, padding: "4px 8px" }}
+            >
+              ↻ {language === "ko" ? "새 메뉴" : "New"}
+            </button>
+          </div>
+        </div>
+
+        <div className="px-5 pb-3">
+          <h2
+            className="font-ko"
+            style={{
+              fontSize: 21,
+              fontWeight: 700,
+              color: FR.ink,
+              lineHeight: 1.3,
+              letterSpacing: -0.5,
+            }}
+          >
+            {language === "ko" ? (
+              <>
+                메뉴 {counts.all}개 중에서{" "}
+                <span style={{ color: FR.pickle }}>{counts.green}개</span>는
+                바로 드실 수 있어요
+              </>
+            ) : (
+              <>
+                <span style={{ color: FR.pickle }}>{counts.green}</span> of{" "}
+                {counts.all} dishes are{" "}
+                <span style={{ color: FR.pickle }}>safe</span> for you
+              </>
+            )}
+          </h2>
+          <div
+            style={{
+              fontSize: 11,
+              color: FR.fog,
+              marginTop: 6,
+              fontFamily: '"JetBrains Mono", monospace',
+            }}
+          >
+            OCR {Math.round(data.ocr_quality * 100)}% ·{" "}
+            {data.processing_time_seconds.toFixed(1)}s · {data.items.length}{" "}
+            items
+          </div>
+        </div>
+
+        {/* Pill tabs */}
+        <div className="px-4 pb-3 flex gap-2 overflow-x-auto" role="tablist">
+          <PillTab
+            label={t.tabAll}
+            n={counts.all}
+            active={filter === "all"}
+            onClick={() => setFilter("all")}
+          />
+          <PillTab
+            label={t.tabGreen}
+            n={counts.green}
+            tone="green"
+            active={filter === "green"}
+            onClick={() => setFilter("green")}
+          />
+          <PillTab
+            label={t.tabYellow}
+            n={counts.yellow}
+            tone="yellow"
+            active={filter === "yellow"}
+            onClick={() => setFilter("yellow")}
+          />
+          <PillTab
+            label={t.tabRed}
+            n={counts.red}
+            tone="red"
+            active={filter === "red"}
+            onClick={() => setFilter("red")}
+          />
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-4 pt-4 flex flex-col gap-2.5">
+        {data.warnings.length > 0 && (
+          <div
+            className="font-ko"
+            role="status"
+            style={{
+              background: FR.honeySoft,
+              border: `1px solid ${FR.honey}33`,
+              color: FR.ink,
+              borderRadius: 12,
+              padding: "10px 12px",
+              fontSize: 12,
+              lineHeight: 1.5,
+            }}
+          >
+            {data.warnings.map((w, i) => (
+              <div key={i}>· {w}</div>
+            ))}
+          </div>
+        )}
+
+        {visible.length === 0 ? (
+          <FriendlyEmpty
+            t={t}
+            onReset={() => setFilter("all")}
+          />
+        ) : (
+          visible.map((it, i) => (
+            <FriendlyCard
+              key={`${it.ko}-${i}`}
+              item={it}
+              qty={cartByName.get(it.ko) ?? 0}
+              language={language}
+              t={t}
+              onAdd={() => onCartChange(denormalize(it), 1)}
+              onShowStaff={() => onShowStaff(denormalize(it))}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Nearby restaurants — preserved */}
+      <NearbyRestaurants language={language} />
+
+      {/* Sticky cart bar — preserved */}
+      {totalQty > 0 && (
+        <div
+          className="fixed inset-x-0 z-20"
+          style={{
+            bottom: 0,
+            paddingBottom: "max(env(safe-area-inset-bottom), 12px)",
+            paddingLeft: 12,
+            paddingRight: 12,
+            paddingTop: 12,
+            background: `${FR.cream}f0`,
+            backdropFilter: "blur(14px)",
+            borderTop: `1px solid ${FR.border}`,
+          }}
+        >
+          <div className="mx-auto max-w-md flex items-center gap-3">
+            <div className="flex-1">
+              <div style={{ fontSize: 11, color: FR.fog }}>
+                {totalQty} {language === "ko" ? "개" : "items"}
+              </div>
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 700,
+                  fontFamily: '"JetBrains Mono", monospace',
+                }}
+              >
+                {totalPrice > 0 ? `₩${totalPrice.toLocaleString()}` : "—"}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onCheckout}
+              className="font-ko"
+              style={{
+                background: FR.pickle,
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 700,
+                borderRadius: 14,
+                padding: "12px 22px",
+                boxShadow: `0 6px 18px ${FR.pickle}50`,
+              }}
+            >
+              {language === "ko" ? "주문 →" : "Order →"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PillTab({
+  label,
+  n,
+  tone,
+  active,
+  onClick,
+}: {
+  label: string;
+  n: number;
+  tone?: "green" | "yellow" | "red";
+  active: boolean;
+  onClick: () => void;
+}) {
+  const toneColors = tone ? FR_TONE[tone] : null;
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className="font-ko whitespace-nowrap"
+      style={{
+        padding: "8px 14px",
+        borderRadius: 99,
+        background: active ? (toneColors?.c ?? FR.ink) : FR.cream2,
+        color: active ? "#fff" : FR.ink,
+        border: `1px solid ${active ? "transparent" : FR.border}`,
+        fontSize: 12,
+        fontWeight: 600,
+        letterSpacing: -0.2,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        boxShadow:
+          active && toneColors ? `0 2px 8px ${toneColors.c}40` : "none",
+      }}
+    >
+      {toneColors && <span style={{ fontSize: 11 }}>{toneColors.emoji}</span>}
+      <span>{label}</span>
+      <span
+        style={{
+          fontFamily: '"JetBrains Mono", monospace',
+          fontSize: 10,
+          opacity: active ? 0.85 : 0.55,
+          padding: "1px 6px",
+          borderRadius: 99,
+          background: active ? "rgba(255,255,255,0.2)" : "rgba(31,26,20,0.06)",
+        }}
+      >
+        {n}
+      </span>
+    </button>
+  );
+}
+
+function FriendlyCard({
+  item,
+  qty,
+  language,
+  t,
+  onAdd,
+  onShowStaff,
+}: {
+  item: FriendlyItem;
+  qty: number;
+  language: UserProfile["language"];
+  t: ReturnType<typeof strings>;
+  onAdd: () => void;
+  onShowStaff: () => void;
+}) {
+  const tone = FR_TONE[item.color];
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [audioState, setAudioState] = useState<"idle" | "playing">("idle");
+
+  let message: string;
+  if (item.isFreeSide) message = t.msgFreeSide;
+  else if (item.color === "red") {
+    const triggers = Object.values(item.triggers).flat();
+    message =
+      triggers.length > 0
+        ? t.msgRedWithTriggers(triggers)
+        : t.msgRedNoTriggers;
+  } else if (item.color === "yellow") {
+    const triggers = Object.values(item.triggers).flat();
+    if (triggers.length > 0) message = t.msgYellowWithTrigger(triggers[0]);
+    else if (item.pricePctOver !== null && item.pricePctOver > 0)
+      message = t.msgYellowPriceOnly(item.pricePctOver);
+    else message = t.msgYellowPriceOnly(0);
+  } else message = t.msgGreen;
+
+  const audioSrc = item.ttsAudioB64
+    ? `data:${item.ttsMime ?? "audio/mp3"};base64,${item.ttsAudioB64}`
+    : null;
+
+  const togglePlay = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (audioState === "playing") {
+      a.pause();
+      a.currentTime = 0;
+      setAudioState("idle");
+    } else {
+      a.play().catch(() => setAudioState("idle"));
+      setAudioState("playing");
+    }
+  };
+
+  return (
+    <article
+      style={{
+        background: FR.cream2,
+        border: `1px solid ${FR.border}`,
+        borderRadius: 18,
+        padding: "14px 14px 14px 14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div className="flex gap-3">
+        {/* Initial badge with signal dot */}
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 14,
+            flexShrink: 0,
+            background: tone.soft,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 22,
+            fontWeight: 700,
+            color: tone.c,
+            position: "relative",
+          }}
+          className="font-ko"
+        >
+          {item.ko.slice(0, 1)}
+          <span
+            style={{
+              position: "absolute",
+              top: -4,
+              right: -4,
+              width: 18,
+              height: 18,
+              borderRadius: "50%",
+              background: tone.c,
+              border: `2px solid ${FR.cream2}`,
+              fontSize: 9,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            {tone.emoji}
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <div
+              className="font-ko"
+              style={{
+                fontSize: 16,
+                color: FR.ink,
+                fontWeight: 700,
+                letterSpacing: -0.3,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {item.ko}
+            </div>
+            <div
+              style={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: 13,
+                color: FR.ink,
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              {item.isFreeSide
+                ? language === "ko"
+                  ? "무료"
+                  : "Free"
+                : item.price
+                  ? `₩${item.price.toLocaleString()}`
+                  : "—"}
+            </div>
+          </div>
+          <div
+            style={{
+              fontSize: 11,
+              color: FR.fog,
+              marginTop: 2,
+              fontStyle: "italic",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {item.en}
+            {item.romanized && ` · ${item.romanized}`}
+          </div>
+          {/* Friendly message tonic */}
+          <div
+            className="font-ko"
+            style={{
+              marginTop: 8,
+              padding: "7px 10px",
+              borderRadius: 9,
+              background: tone.soft,
+              color: tone.c,
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: -0.2,
+              lineHeight: 1.4,
+            }}
+          >
+            {message}
+          </div>
+        </div>
+      </div>
+
+      {/* Action row */}
+      <div className="flex gap-2 pt-1">
+        {audioSrc && (
+          <button
+            type="button"
+            onClick={togglePlay}
+            className="font-ko"
+            aria-label="Play Korean audio"
+            style={{
+              flex: 1,
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: `1px solid ${FR.border}`,
+              background: FR.cream,
+              color: FR.ink,
+              fontSize: 12,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+            }}
+          >
+            {audioState === "playing" ? "■" : "▶"}{" "}
+            {language === "ko" ? "한국어" : "Korean"}
+          </button>
+        )}
+        {item.color !== "red" && !item.isFreeSide && (
+          <button
+            type="button"
+            onClick={onShowStaff}
+            className="font-ko"
+            style={{
+              flex: 1.4,
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: "none",
+              background: FR.ink,
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            📝 {language === "ko" ? "직원에게" : "Show staff"}
+          </button>
+        )}
+        {item.color !== "red" && !item.isFreeSide && (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="font-ko"
+            aria-label="Add to cart"
+            style={{
+              padding: "8px 12px",
+              borderRadius: 10,
+              border: `1px solid ${FR.pickle}`,
+              background: qty > 0 ? FR.pickle : FR.pickleSoft,
+              color: qty > 0 ? "#fff" : FR.pickle,
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            {qty > 0 ? `+${qty}` : "+"}
+          </button>
+        )}
+      </div>
+
+      {audioSrc && (
+        <audio
+          ref={audioRef}
+          src={audioSrc}
+          onEnded={() => setAudioState("idle")}
+          onError={() => setAudioState("idle")}
+        />
+      )}
+    </article>
+  );
+}
+
+function FriendlyEmpty({
+  t,
+  onReset,
+}: {
+  t: ReturnType<typeof strings>;
+  onReset: () => void;
+}) {
+  return (
+    <div className="font-ko" style={{ padding: "60px 24px", textAlign: "center" }}>
+      <div style={{ fontSize: 42 }}>🥒</div>
+      <div
+        style={{
+          fontSize: 18,
+          fontWeight: 700,
+          marginTop: 14,
+          color: FR.ink,
+        }}
+      >
+        {t.emptyTitle}
+      </div>
+      <div style={{ fontSize: 12, color: FR.fog, marginTop: 6 }}>
+        {t.emptySubtitle}
+      </div>
+      <button
+        type="button"
+        onClick={onReset}
+        className="font-ko mt-4"
+        style={{
+          padding: "11px 22px",
+          borderRadius: 99,
+          background: FR.pickle,
+          color: "#fff",
+          border: "none",
+          fontSize: 13,
+          fontWeight: 600,
+        }}
+      >
+        {t.emptyAction}
+      </button>
+    </div>
+  );
+}

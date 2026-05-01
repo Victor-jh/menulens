@@ -1,0 +1,98 @@
+// 추가 메뉴 — 필터링 의미가 생기도록 카테고리 다양화
+
+const ITEMS_C = [
+  { ko:'\uB41C\uC7A5\uCC0C\uAC1C', romanized:'doenjang-jjigae', en:'Soybean Paste Stew',
+    price:7500, benchmark:8000, spicy:1, category:'Stew',
+    triggers:{ yui:[], malik:[], chen:[], john:[] },
+    desc:'Earthy fermented soybean stew with tofu, zucchini and clams.',
+    short:'Earthy, comforting.',
+    ingredients:[ {ko:'\uB41C\uC7A5',en:'Soybean paste',allergen:['soy']}, {ko:'\uB450\uBD80',en:'Tofu',allergen:['soy']}, {ko:'\uC560\uD638\uBC15',en:'Zucchini',allergen:[]} ],
+    when:'Anytime', origin:'Nationwide', pairsWith:['Rice'],
+    typicalPrice:'7,000\u20139,000', servingTemp:'Hot', orderPhrase:'\uB41C\uC7A5\uCC0C\uAC1C \uD558\uB098 \uC8FC\uC138\uC694' },
+
+  { ko:'\uC21C\uB450\uBD80\uCC0C\uAC1C', romanized:'sundubu-jjigae', en:'Soft Tofu Stew',
+    price:8500, benchmark:8500, spicy:2, category:'Stew',
+    triggers:{ yui:[], malik:[], chen:[], john:[] },
+    desc:'Silken tofu in a spicy seafood broth with egg cracked on top.',
+    short:'Silky and spicy.',
+    ingredients:[ {ko:'\uC21C\uB450\uBD80',en:'Soft tofu',allergen:['soy']}, {ko:'\uC870\uAC1C',en:'Clam',allergen:['shellfish']}, {ko:'\uACC4\uB780',en:'Egg',allergen:['egg']} ],
+    when:'Lunch, dinner', origin:'Nationwide', pairsWith:['Rice'],
+    typicalPrice:'8,000\u201310,000', servingTemp:'Hot', orderPhrase:'\uC21C\uB450\uBD80\uCC0C\uAC1C \uD558\uB098 \uC8FC\uC138\uC694' },
+
+  { ko:'\uC57C\uCC44\uAE40\uBC25', romanized:'yachae-gimbap', en:'Vegetable Roll',
+    price:3500, benchmark:3800, spicy:0, category:'Rice roll',
+    triggers:{ yui:[], malik:[], chen:[], john:[] },
+    desc:'Seaweed rice roll filled with carrot, spinach, pickled radish, egg.',
+    short:'The vegetarian default.',
+    ingredients:[ {ko:'\uB2F9\uADFC',en:'Carrot',allergen:[]}, {ko:'\uC2DC\uAE08\uCE58',en:'Spinach',allergen:[]}, {ko:'\uACC4\uB780',en:'Egg',allergen:['egg']} ],
+    when:'Anytime', origin:'Nationwide', pairsWith:['Soup'],
+    typicalPrice:'3,000\u20134,500', servingTemp:'Room', orderPhrase:'\uC57C\uCC44\uAE40\uBC25 \uD558\uB098 \uC8FC\uC138\uC694' },
+
+  { ko:'\uCE58\uC988\uAE40\uBC25', romanized:'cheese-gimbap', en:'Cheese Roll',
+    price:5000, benchmark:4500, spicy:0, category:'Rice roll',
+    triggers:{ yui:[], malik:[], chen:[], john:[] },
+    desc:'Tuna and melted cheese in a seaweed roll. Modern street favorite.',
+    short:'Cheese-melt comfort.',
+    ingredients:[ {ko:'\uCC38\uCE58',en:'Tuna',allergen:['fish']}, {ko:'\uCE58\uC988',en:'Cheese',allergen:['dairy']} ],
+    when:'Anytime', origin:'Nationwide', pairsWith:['Soup'],
+    typicalPrice:'4,000\u20136,000', servingTemp:'Room', orderPhrase:'\uCE58\uC988\uAE40\uBC25 \uD558\uB098 \uC8FC\uC138\uC694' },
+
+  { ko:'\uB3CC\uC1A5\uBE44\uBE94\uBC25', romanized:'dolsot-bibimbap', en:'Stone Bowl Bibimbap',
+    price:11000, benchmark:10000, spicy:1, category:'Rice bowl',
+    triggers:{ yui:[], malik:[], chen:['sesame'], john:[] },
+    desc:'Bibimbap served sizzling in a hot stone bowl with crispy rice crust.',
+    short:'Crispy rice on the bottom.',
+    ingredients:[ {ko:'\uC1E0\uACE0\uAE30',en:'Beef',allergen:['beef']}, {ko:'\uCC38\uAE30\uB984',en:'Sesame oil',allergen:['sesame']} ],
+    when:'Lunch, dinner', origin:'Nationwide', pairsWith:['Miyeokguk'],
+    typicalPrice:'9,500\u201312,000', servingTemp:'Sizzling', orderPhrase:'\uB3CC\uC1A5\uBE44\uBE94\uBC25 \uD558\uB098 \uC8FC\uC138\uC694' },
+
+  { ko:'\uAE40\uCE58\uBCF6\uC74C\uBC25', romanized:'kimchi-bokkeumbap', en:'Kimchi Fried Rice',
+    price:8000, benchmark:8000, spicy:2, category:'Rice bowl',
+    triggers:{ yui:['pork'], malik:['pork'], chen:[], john:[] },
+    desc:'Stir-fried kimchi rice topped with egg and seaweed flakes.',
+    short:'Last-night-kimchi miracle.',
+    ingredients:[ {ko:'\uAE40\uCE58',en:'Kimchi',allergen:[]}, {ko:'\uB3FC\uC9C0\uACE0\uAE30',en:'Pork',allergen:['pork']}, {ko:'\uACC4\uB780',en:'Egg',allergen:['egg']} ],
+    when:'Anytime', origin:'Nationwide', pairsWith:['Soup'],
+    typicalPrice:'7,000\u20139,000', servingTemp:'Hot', orderPhrase:'\uAE40\uCE58\uBCF6\uC74C\uBC25 \uD558\uB098 \uC8FC\uC138\uC694' },
+
+  { ko:'\uB098\uBB34\uC785\uC804', romanized:'namul-jeon', en:'Vegetable Pancake',
+    price:9000, benchmark:9500, spicy:0, category:'Pancake',
+    triggers:{ yui:[], malik:[], chen:[], john:[] },
+    desc:'Mixed-vegetable savory pancake with chive and zucchini.',
+    short:'Lighter pancake option.',
+    ingredients:[ {ko:'\uBC00\uAC00\uB8E8',en:'Wheat flour',allergen:['gluten']} ],
+    when:'Evening', origin:'Nationwide', pairsWith:['Makgeolli'],
+    typicalPrice:'8,000\u201311,000', servingTemp:'Hot', orderPhrase:'\uB098\uBB34\uC785\uC804 \uD558\uB098 \uC8FC\uC138\uC694' },
+
+  { ko:'\uC624\uC9D5\uC5B4\uBCF6\uC74C', romanized:'ojingeo-bokkeum', en:'Spicy Squid Stir-fry',
+    price:11000, benchmark:11000, spicy:3, category:'Stir-fry',
+    triggers:{ yui:[], malik:[], chen:[], john:[] },
+    desc:'Squid stir-fried with vegetables in red pepper sauce.',
+    short:'For seafood + spice lovers.',
+    ingredients:[ {ko:'\uC624\uC9D5\uC5B4',en:'Squid',allergen:['shellfish']}, {ko:'\uC591\uD30C',en:'Onion',allergen:[]} ],
+    when:'Lunch, dinner', origin:'Coastal', pairsWith:['Rice'],
+    typicalPrice:'10,000\u201313,000', servingTemp:'Hot', orderPhrase:'\uC624\uC9D5\uC5B4\uBCF6\uC74C \uD558\uB098 \uC8FC\uC138\uC694' },
+
+  { ko:'\uACF5\uAE43\uBC25', romanized:'gonggibap', en:'Bowl of Rice',
+    price:1000, benchmark:1000, spicy:0, category:'Side',
+    triggers:{ yui:[], malik:[], chen:[], john:[] },
+    desc:'Plain steamed white rice. Ordered alongside any stew.',
+    short:'The default carb.',
+    ingredients:[ {ko:'\uC30C',en:'Rice',allergen:[]} ],
+    when:'With main', origin:'Nationwide', pairsWith:['Any stew'],
+    typicalPrice:'1,000\u20131,500', servingTemp:'Hot', orderPhrase:'\uACF5\uAE43\uBC25 \uD558\uB098 \uC8FC\uC138\uC694' },
+
+  { ko:'\uAE40\uCE58', romanized:'kimchi', en:'Kimchi', isFreeSide:true,
+    price:null, benchmark:null, spicy:2, category:'Free side',
+    triggers:{ yui:[], malik:[], chen:[], john:[] },
+    desc:'Fermented napa cabbage. Always free, always refilled.',
+    short:'Free, unlimited.',
+    ingredients:[ {ko:'\uBC30\uCD94',en:'Cabbage',allergen:[]}, {ko:'\uACE0\uCD94\uAC00\uB8E8',en:'Chili',allergen:[]} ],
+    when:'With main', origin:'Nationwide', pairsWith:['Anything'],
+    typicalPrice:'Free', servingTemp:'Cold', orderPhrase:'' },
+];
+
+window.MENULENS_ITEMS_C = ITEMS_C;
+window.MENULENS_DEMO_ITEMS = function(){
+  return [...(window.MENULENS_ITEMS_A||[]), ...(window.MENULENS_ITEMS_B||[]), ...ITEMS_C];
+};

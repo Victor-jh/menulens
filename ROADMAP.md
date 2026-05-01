@@ -129,11 +129,15 @@
   - 3) 데이터 활용 방안 (TourAPI + 5개 교차)
   - 4) 서비스 발전 방향 (Phase 2 Dashboard 포함)
 
-### D11 — 2026-05-01 (목) · 제안서 퇴고
+### D11 — 2026-05-01 (목) · 제안서 퇴고 + 디자인 v2 마이그레이션 시작
 - [ ] 심사 배점(100점) 체크리스트로 자체 채점 — 초안 채점 완료 (`docs/review_proposal_scorecard.md`, D3 기준 77/100)
 - [ ] 보완 포인트 6개 반영 (출처 각주·작동 증거·안정성·데이터 갱신주기·Phase 2 KPI·페르소나)
 - [ ] 문장 리듬, 페이지 레이아웃, 이미지 배치
 - [ ] Cowork에서 HWP/PDF 변환 (플랜 `docs/submission/hwp_conversion_plan.md`)
+- [x] **디자인 v2 baseline tag** `v0.5-pre-redesign` (claude.ai/design 핸드오프 적용 시작)
+  - `docs/design/handoff/menulens/` JSX 30+ 파일 분석 완료
+  - 워크플로우: Adapter + 토큰 + i18n + 5 critical 화면 (Onboarding/Capture/Results/ShowStaff/Review)
+  - feature flag `NEXT_PUBLIC_UI_VERSION=v2` gate, 6 자산 보존 (TTS/Nearby/다국어/가격%/Cart/Sample)
 
 ### D12 — 2026-05-02 (금) · 시연 영상 최종
 - [ ] 자막(영어/한국어 병기)

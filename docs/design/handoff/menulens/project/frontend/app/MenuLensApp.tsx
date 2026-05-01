@@ -8,13 +8,6 @@ import { OrderSheet } from "./components/OrderSheet";
 import { ReviewSheet } from "./components/ReviewSheet";
 import { analyzeMenu, API_BASE_URL } from "./lib/api";
 import type { AnalyzeResponse, AnalyzedItem, CartItem, UserProfile } from "./types";
-// v2 design (Friendly / Pickle Plus tone) — gated by NEXT_PUBLIC_UI_VERSION.
-// See docs/design/handoff/menulens/ for the source artifacts.
-import { useUiV2 } from "./design/v2/flag";
-import { OnboardingV2 } from "./design/v2/components/OnboardingV2";
-import { UploadV2 } from "./design/v2/components/UploadV2";
-import { ResultsV2 } from "./design/v2/components/ResultsV2";
-import { ShowStaffV2 } from "./design/v2/components/ShowStaffV2";
 
 // Yui — D8 사 시연 기준 페르소나 (Pescatarian 일본인). Sample 버튼이 사용.
 const SAMPLE_PROFILE: UserProfile = {
@@ -92,7 +85,7 @@ function DebugOverlay() {
   );
 }
 
-type Phase = "onboarding" | "upload" | "results" | "showStaff" | "order" | "review";
+type Phase = "onboarding" | "upload" | "results" | "order" | "review";
 
 const PROFILE_KEY = "menulens.profile.v1";
 
@@ -225,87 +218,32 @@ export function MenuLensApp() {
   const debugOn =
     typeof window !== "undefined" && /[?&]debug=1\b/.test(window.location.search);
 
-  // Per-item handoff (v2 ShowStaff phase).
-  const [staffItem, setStaffItem] = useState<AnalyzedItem | null>(null);
-  const handleShowStaff = (item: AnalyzedItem) => {
-    setStaffItem(item);
-    setPhase("showStaff");
-  };
-
-  const v2 = useUiV2();
-
   return (
-    <main
-      className={
-        v2
-          ? "min-h-screen text-[color:var(--color-ink)]"
-          : "min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50"
-      }
-      style={v2 ? { background: "#FFF8EE" } : undefined}
-    >
+    <main className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
       {debugOn && <DebugOverlay />}
-      {phase === "onboarding" &&
-        (v2 ? (
-          <OnboardingV2
-            profile={profile}
-            setProfile={setProfile}
-            onNext={() => setPhase("upload")}
-            onSample={handleSample}
-            sampleBusy={sampleBusy}
-            sampleError={sampleError}
-            onSkip={() => setPhase("upload")}
-          />
-        ) : (
-          <Onboarding
-            profile={profile}
-            setProfile={setProfile}
-            onNext={() => setPhase("upload")}
-            onSample={handleSample}
-            sampleBusy={sampleBusy}
-            sampleError={sampleError}
-            onSkip={() => setPhase("upload")}
-          />
-        ))}
-      {phase === "upload" &&
-        (v2 ? (
-          <UploadV2
-            onAnalyze={handleAnalyze}
-            onBack={() => setPhase("onboarding")}
-            language={profile.language}
-          />
-        ) : (
-          <Upload onAnalyze={handleAnalyze} onBack={() => setPhase("onboarding")} />
-        ))}
-      {phase === "results" &&
-        result &&
-        (v2 ? (
-          <ResultsV2
-            data={result}
-            imageFile={analyzedFile}
-            language={profile.language}
-            profile={profile}
-            cart={cart}
-            onCartChange={updateCart}
-            onReset={() => setPhase("upload")}
-            onCheckout={() => setPhase("order")}
-            onShowStaff={handleShowStaff}
-          />
-        ) : (
-          <Results
-            data={result}
-            imageFile={analyzedFile}
-            language={profile.language}
-            cart={cart}
-            onCartChange={updateCart}
-            onReset={() => setPhase("upload")}
-            onCheckout={() => setPhase("order")}
-          />
-        ))}
-      {phase === "showStaff" && staffItem && (
-        <ShowStaffV2
-          item={staffItem}
+      {phase === "onboarding" && (
+        <Onboarding
           profile={profile}
-          onBack={() => setPhase("results")}
+          setProfile={setProfile}
+          onNext={() => setPhase("upload")}
+          onSample={handleSample}
+          sampleBusy={sampleBusy}
+          sampleError={sampleError}
+          onSkip={() => setPhase("upload")}
+        />
+      )}
+      {phase === "upload" && (
+        <Upload onAnalyze={handleAnalyze} onBack={() => setPhase("onboarding")} />
+      )}
+      {phase === "results" && result && (
+        <Results
+          data={result}
+          imageFile={analyzedFile}
+          language={profile.language}
+          cart={cart}
+          onCartChange={updateCart}
+          onReset={() => setPhase("upload")}
+          onCheckout={() => setPhase("order")}
         />
       )}
       {phase === "order" && (

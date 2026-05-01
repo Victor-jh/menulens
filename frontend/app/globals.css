@@ -1,3 +1,9 @@
+/* @import rules must precede all other rules per CSS spec (Tailwind v4).
+   Pretendard (KR) + Instrument Serif (display) + Inter Tight (UI) + JetBrains
+   Mono (label). Pretendard is not on Google Fonts; jsdelivr CDN is used —
+   migrate to next/font/local in a follow-up if FOUT becomes an issue. */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 @import "tailwindcss";
 
 :root {
@@ -5,11 +11,42 @@
   --foreground: #171717;
 }
 
+/* Tailwind v4 CSS-first tokens.
+   These auto-generate utilities: --color-pickle → bg-pickle/text-pickle/border-pickle, etc.
+   Source: claude.ai/design handoff atoms.jsx + screen-results-friendly.jsx (FR palette).
+   See docs/design/handoff/menulens/project/atoms.jsx for ML editorial-dark variant
+   (kept as appendix/reference; production uses Friendly tones below). */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  /* Friendly (production) — warm cream + Pickle Plus signals */
+  --color-cream: #FFF8EE;       /* main background */
+  --color-cream2: #FFFDF7;      /* card background (slightly brighter) */
+  --color-ink: #1F1A14;         /* primary text */
+  --color-inkSoft: #5C5347;     /* secondary text */
+  --color-fog: #9A9388;         /* tertiary / meta */
+  --color-border-fr: rgba(31, 26, 20, 0.08);
+
+  /* Signal palette (Pickle Plus) */
+  --color-pickle: #3CA86A;      /* green / 맘껏 드세요 🥒 */
+  --color-pickleSoft: #E8F5EC;
+  --color-honey: #F2A93B;       /* yellow / 한 번 물어봐요 🤔 */
+  --color-honeySoft: #FDF1DC;
+  --color-blush: #E66B5B;       /* red / 이건 패스 ✋ */
+  --color-blushSoft: #FCE4DF;
+
+  /* Editorial dark (appendix — for staff cards or future use) */
+  --color-darkInk: #0E1116;
+  --color-paper: #F4ECDF;
+  --color-warmInk: #1A1410;
+
+  /* Display fonts */
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-ko: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+  --font-ui: "Inter Tight", "Inter", -apple-system, system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,7 +59,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -42,3 +80,7 @@ select,
 textarea {
   font-size: 16px;
 }
+
+/* Friendly v2 helper: korean text with optical adjustment */
+.font-ko { font-family: var(--font-ko); letter-spacing: -0.3px; }
+.font-display { font-family: var(--font-display); }
