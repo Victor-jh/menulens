@@ -52,6 +52,7 @@ from backend.agents.reviews import (
 )
 from backend.agents import tour_api as _tour_api
 from backend.agents import tour_lod as _tour_lod
+from backend.agents import dish_finder as _dish_finder
 from backend.agents.image_classifier import classify_image, ImageClassification
 
 
@@ -603,6 +604,91 @@ async def restaurants_nearby_endpoint(
         radius_m=result.radius_m,
         center_lat=lat,
         center_lon=lon,
+    )
+
+
+class DishFinderRestaurantOut(BaseModel):
+    content_id: str
+    title: str
+    addr: Optional[str] = None
+    mapx: Optional[float] = None
+    mapy: Optional[float] = None
+    distance_m: Optional[int] = None
+    first_image: Optional[str] = None
+    first_image_thumbnail: Optional[str] = None
+    tel: Optional[str] = None
+    cat3: Optional[str] = None
+    best_menu: Optional[str] = None
+
+
+class DishFinderResponse(BaseModel):
+    status: str  # ok | no_results | upstream_error | missing_input
+    items: list[DishFinderRestaurantOut] = []
+    total_count: int = 0
+    message: Optional[str] = None
+    dish_ko_used: Optional[str] = None
+    language_used: Optional[str] = None
+
+
+_DISH_NAME_KO_RE = re.compile(r"^[\w가-힣一-龥0-9\s\-·()()&,.\[\]]+$")
+
+
+@app.get("/restaurants/by_dish", response_model=DishFinderResponse)
+async def restaurants_by_dish_endpoint(
+    dish_ko: str,
+    language: str = "en",
+    limit: int = 10,
+    user_lat: Optional[float] = None,
+    user_lon: Optional[float] = None,
+):
+    """
+    LOD ktop:bestMenu 역방향 — 특정 음식을 시그니처로 등록한 식당 list.
+    Used by Hermes Phase 2 single_dish flow: image_classifier identifies a
+    food photo → frontend looks up restaurants serving that dish.
+    """
+    if language not in ALLOWED_LANGUAGES:
+        raise HTTPException(400, f"Unsupported language: {language}")
+    dish_ko = (dish_ko or "").strip()
+    if not dish_ko or len(dish_ko) > 30:
+        raise HTTPException(400, "dish_ko must be 1-30 chars")
+    if not _DISH_NAME_KO_RE.match(dish_ko):
+        raise HTTPException(400, "dish_ko contains invalid characters")
+    if limit < 1 or limit > 30:
+        raise HTTPException(400, "limit must be in [1, 30]")
+    if user_lat is not None and not (_LAT_MIN <= user_lat <= _LAT_MAX):
+        raise HTTPException(400, "user_lat outside Korea bounding box")
+    if user_lon is not None and not (_LON_MIN <= user_lon <= _LON_MAX):
+        raise HTTPException(400, "user_lon outside Korea bounding box")
+
+    result = await _dish_finder.find_restaurants_by_dish(
+        dish_ko=dish_ko,
+        user_lat=user_lat,
+        user_lon=user_lon,
+        language=language,
+        limit=limit,
+    )
+    return DishFinderResponse(
+        status=result.status,
+        items=[
+            DishFinderRestaurantOut(
+                content_id=r.content_id,
+                title=r.title,
+                addr=r.addr,
+                mapx=r.mapx,
+                mapy=r.mapy,
+                distance_m=r.distance_m,
+                first_image=r.first_image,
+                first_image_thumbnail=r.first_image_thumbnail,
+                tel=r.tel,
+                cat3=r.cat3,
+                best_menu=r.best_menu,
+            )
+            for r in result.items
+        ],
+        total_count=result.total_count,
+        message=result.message,
+        dish_ko_used=result.dish_ko_used,
+        language_used=result.language_used,
     )
 
 

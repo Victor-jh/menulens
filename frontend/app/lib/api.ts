@@ -177,6 +177,60 @@ export async function fetchRestaurantDetail(
   }
 }
 
+// Hermes Phase 2 — dish_finder reverse query.
+export interface DishFinderRestaurant {
+  content_id: string;
+  title: string;
+  addr?: string | null;
+  mapx?: number | null;
+  mapy?: number | null;
+  distance_m?: number | null;
+  first_image?: string | null;
+  first_image_thumbnail?: string | null;
+  tel?: string | null;
+  cat3?: string | null;
+  best_menu?: string | null;
+}
+
+export interface DishFinderResponse {
+  status: "ok" | "no_results" | "upstream_error" | "missing_input";
+  items: DishFinderRestaurant[];
+  total_count: number;
+  message?: string | null;
+  dish_ko_used?: string | null;
+  language_used?: string | null;
+}
+
+export async function fetchRestaurantsByDish(
+  dishKo: string,
+  language: string,
+  limit = 8,
+  userLat?: number,
+  userLon?: number
+): Promise<DishFinderResponse | null> {
+  const params = new URLSearchParams({
+    dish_ko: dishKo,
+    language,
+    limit: String(limit),
+  });
+  if (userLat !== undefined && userLon !== undefined) {
+    params.set("user_lat", userLat.toFixed(6));
+    params.set("user_lon", userLon.toFixed(6));
+  }
+  const url = `${API_BASE}/restaurants/by_dish?${params.toString()}`;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 12_000);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, cache: "no-store" });
+    if (!res.ok) return null;
+    return (await res.json()) as DishFinderResponse;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function fetchStory(
   nameKo: string,
   language: string,
