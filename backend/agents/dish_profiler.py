@@ -75,6 +75,85 @@ MATCH_HIGH = 0.65   # >= 0.65 → official_db 사용
 MATCH_LOW  = 0.50   # 0.50~0.65 → 후보 3개 hybrid (D5 Claude 선택)
 #                     < 0.50 → LLM fallback (D5)
 
+# Manual overrides — for dishes NOT in 한식 길라잡이 800선 that the embedding
+# search would otherwise mis-match to a similar Korean noodle/dish.
+# Audit P0 (2026-05-02): 짜장면 was returning 잡채's English name & description
+# because hansik_800 has no Sino-Korean (中華料理) entries — closest neighbour
+# in 768d embedding space was 잡채 (also a noodle dish).
+# Each entry mirrors the shape of an `_rag_lookup` row.
+_DISH_OVERRIDES: dict[str, dict] = {
+    "짜장면": {
+        "name_ko": "짜장면",
+        "name_en": "Black Bean Noodles",
+        "romanization": "Jajangmyeon",
+        "desc_en": "Wheat noodles topped with thick black bean sauce, "
+                   "stir-fried with diced pork and onion. The most popular "
+                   "Korean-Chinese fusion dish, often ordered for delivery.",
+        "ingredients_extracted": ["면", "춘장(검은콩)", "돼지", "양파", "감자"],
+        "allergy_tags": ["wheat", "soybean", "pork"],
+        "halal_status": "not_halal",
+        "vegan_status": "not_vegan",
+        "spicy_level": 0,
+        "category": "면 [Myeon]",
+        "similarity": 1.0,
+    },
+    "자장면": {  # 표준어 표기
+        "name_ko": "자장면",
+        "name_en": "Black Bean Noodles",
+        "romanization": "Jajangmyeon",
+        "desc_en": "Wheat noodles topped with thick black bean sauce, "
+                   "stir-fried with diced pork and onion.",
+        "ingredients_extracted": ["면", "춘장(검은콩)", "돼지", "양파"],
+        "allergy_tags": ["wheat", "soybean", "pork"],
+        "halal_status": "not_halal",
+        "vegan_status": "not_vegan",
+        "spicy_level": 0,
+        "category": "면 [Myeon]",
+        "similarity": 1.0,
+    },
+    "짬뽕": {
+        "name_ko": "짬뽕",
+        "name_en": "Spicy Seafood Noodle Soup",
+        "romanization": "Jjamppong",
+        "desc_en": "Spicy red broth with wheat noodles, mussels, squid, "
+                   "shrimp, pork and vegetables. Korean-Chinese staple.",
+        "ingredients_extracted": ["면", "어패류", "오징어", "새우", "돼지", "고추"],
+        "allergy_tags": ["wheat", "shrimp", "crab", "pork"],
+        "halal_status": "not_halal",
+        "vegan_status": "not_vegan",
+        "spicy_level": 2,
+        "category": "면 [Myeon]",
+        "similarity": 1.0,
+    },
+    "탕수육": {
+        "name_ko": "탕수육",
+        "name_en": "Sweet and Sour Pork",
+        "romanization": "Tangsuyuk",
+        "desc_en": "Battered fried pork served with a sweet and sour sauce "
+                   "made from vinegar, sugar and vegetables.",
+        "ingredients_extracted": ["돼지", "전분", "식초", "설탕", "양파"],
+        "allergy_tags": ["pork", "wheat", "soybean"],
+        "halal_status": "not_halal",
+        "vegan_status": "not_vegan",
+        "spicy_level": 0,
+        "category": "튀김 [Twigim]",
+        "similarity": 1.0,
+    },
+    "군만두": {
+        "name_ko": "군만두",
+        "name_en": "Pan-fried Dumplings",
+        "romanization": "Gunmandu",
+        "desc_en": "Pan-fried dumplings filled with pork, kimchi or vegetables.",
+        "ingredients_extracted": ["만두피", "돼지", "부추", "양파"],
+        "allergy_tags": ["wheat", "pork"],
+        "halal_status": "not_halal",
+        "vegan_status": "not_vegan",
+        "spicy_level": 0,
+        "category": "만두 [Mandu]",
+        "similarity": 1.0,
+    },
+}
+
 
 def _get_clients():
     if not (_GEMINI_OK and _SUPABASE_OK):
@@ -135,6 +214,29 @@ async def profile_dish(
     - 0.50 <= sim < 0.65 → hybrid (D5에서 Claude가 후보 중 확정)
     - sim < 0.50 → unknown (D5 LLM fallback 예정)
     """
+    # Manual overrides win over RAG — used for Sino-Korean (中華料理) dishes
+    # like 짜장면/짬뽕 that 800선 doesn't cover and where embedding similarity
+    # would otherwise produce a wrong neighbor (e.g., 짜장면→잡채).
+    normalized = dish_name.replace(" ", "")
+    override = _DISH_OVERRIDES.get(normalized)
+    if override is not None:
+        return DishProfile(
+            name_ko=override["name_ko"],
+            name_official=override["name_en"],
+            name_translated=override["name_en"],
+            romanization=override["romanization"],
+            description=override["desc_en"],
+            ingredients=override.get("ingredients_extracted", []),
+            allergens=override.get("allergy_tags", []),
+            halal_safe=(override.get("halal_status") == "halal_likely"),
+            vegan_safe=(override.get("vegan_status") == "vegan"),
+            vegetarian_safe=override.get("vegan_status") in ("vegan", "vegetarian"),
+            spicy_level=override.get("spicy_level"),
+            category=override.get("category"),
+            match_similarity=override.get("similarity", 1.0),
+            source="official_db",
+        )
+
     try:
         match = await _rag_lookup(dish_name)
     except RuntimeError:

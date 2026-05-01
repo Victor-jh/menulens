@@ -67,15 +67,36 @@ KOREAN_FREE_SIDES_KEYWORDS = {
 }
 
 
+# Main-dish suffixes — these are NEVER free, even if name contains a free-side
+# keyword as substring (e.g., "김치찌개" contains "김치" but is a 8,000원 main).
+# Audit P0 (2026-05-02): "김치찌개" + "물냉면" mis-flagged as Free; bug was
+# substring-only match. Now we exclude any name ending in a main-dish suffix.
+_MAIN_DISH_SUFFIXES = (
+    "찌개", "탕", "국밥", "면", "비빔밥", "덮밥", "정식",
+    "전골", "찜", "구이", "볶음밥", "라면", "냉면", "우동",
+)
+
+
 def _annotate_free_sides(items: list["MenuItem"]) -> list["MenuItem"]:
-    """Gemini 분류가 누락됐을 경우 사전 매칭으로 free_side_likely 보강."""
+    """Gemini 분류가 누락됐을 경우 사전 매칭으로 free_side_likely 보강.
+
+    Two guards added in D12 audit:
+      1) Reject any item ending in a main-dish suffix (찌개·탕·면·…).
+      2) Free items must be priceless or zero-priced — a paid dish is by
+         definition not a banchan, regardless of name overlap.
+    """
     for it in items:
         normalized = it.name.replace(" ", "")
+        # Guard 1: main-dish suffix wins over substring match
+        if normalized.endswith(_MAIN_DISH_SUFFIXES):
+            continue
+        # Guard 2: paid item is never free, even if "김치" / "물" appears in name
+        if it.price is not None and it.price > 0:
+            continue
         for keyword in KOREAN_FREE_SIDES_KEYWORDS:
             if keyword in normalized:
                 it.free_side_likely = True
-                # menu_item으로 잘못 분류된 명백한 사이드는 free_side로 강등
-                if it.item_type == "menu_item" and (it.price is None or it.price == 0):
+                if it.item_type == "menu_item":
                     it.item_type = "free_side"
                 break
     return items

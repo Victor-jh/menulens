@@ -26,21 +26,32 @@ export function FriendlyCard({
   onAdd: () => void;
   onShowStaff: () => void;
 }) {
-  const tone = FR_TONE[item.color];
+  // Free banchan override: a free side dish is by definition opt-in (it
+  // arrives with the meal, you don't have to eat it). Coloring it red would
+  // contradict the "Free, comes without ordering" message — design audit P0.
+  // We coerce the visual state to green for free items regardless of what
+  // verdict.py decided, but keep the original color in `item.color` for
+  // analytics. Conflict reasons (e.g., pork in 김치찌개 for a Pescatarian)
+  // still surface in the message body so the user knows what to skip.
+  const effectiveColor = item.isFreeSide ? "green" : item.color;
+  const tone = FR_TONE[effectiveColor];
   const audioRef = useRef<HTMLAudioElement>(null);
   const [audioState, setAudioState] = useState<"idle" | "playing">("idle");
+
+  // Backend ships two trigger fields:
+  //   - reasonsText  → human-readable lines from verdict.py (preferred)
+  //   - triggers     → categorical flags ('diet_hard_conflict', 'price_suspect')
+  //                    These are useful for filtering but MUST NOT leak into
+  //                    user UI as English. They did, in v1 — design audit P0.
+  // We always prefer reasonsText; fall back to a safe generic only when empty.
+  const reasons = item.reasonsText.filter((r) => r && r.trim().length > 0);
 
   let message: string;
   if (item.isFreeSide) message = t.msgFreeSide;
   else if (item.color === "red") {
-    const triggers = Object.values(item.triggers).flat();
-    message =
-      triggers.length > 0
-        ? t.msgRedWithTriggers(triggers)
-        : t.msgRedNoTriggers;
+    message = reasons[0] ?? t.msgRedNoTriggers;
   } else if (item.color === "yellow") {
-    const triggers = Object.values(item.triggers).flat();
-    if (triggers.length > 0) message = t.msgYellowWithTrigger(triggers[0]);
+    if (reasons[0]) message = reasons[0];
     else if (item.pricePctOver !== null && item.pricePctOver > 0)
       message = t.msgYellowPriceOnly(item.pricePctOver);
     else message = t.msgYellowPriceOnly(0);
