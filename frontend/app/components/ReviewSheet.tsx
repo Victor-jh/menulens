@@ -36,8 +36,16 @@ export function ReviewSheet({ cart, language, onDone, onBack }: Props) {
   const [rewards, setRewards] = useState<RewardResult[]>([]);
   const [submittedReviews, setSubmittedReviews] = useState<ReviewOut[]>([]);
   const [spinIndex, setSpinIndex] = useState<number>(0); // animation tick
+  const [copiedId, setCopiedId] = useState<string | number | null>(null);
 
   const hasAnyRating = Object.values(reviewByName).some((r) => r.rating > 0);
+
+  const copyThreadsText = (text: string, id: string | number) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
 
   const setRating = (name: string, rating: number) =>
     setReviewByName((prev) => ({
@@ -233,10 +241,15 @@ export function ReviewSheet({ cart, language, onDone, onBack }: Props) {
           {submittedReviews.some((r) => !!r.threads_text) && (
             <section className="mt-2 flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold">📣 Shared as anonymized post</h3>
-                <span className="text-[10px] text-zinc-500">
-                  Visible at /reviews · Threads (Phase 2)
-                </span>
+                <h3 className="text-sm font-semibold">📣 Share to Threads</h3>
+                <a
+                  href="https://www.threads.net/@menulens"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                >
+                  @menulens ↗
+                </a>
               </div>
               <ul className="flex flex-col gap-2">
                 {submittedReviews
@@ -252,16 +265,10 @@ export function ReviewSheet({ cart, language, onDone, onBack }: Props) {
                           className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
                             r.threads_status === "posted"
                               ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200"
-                              : r.threads_status === "skipped"
-                              ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                              : "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200"
+                              : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                           }`}
                         >
-                          {r.threads_status === "posted"
-                            ? "Posted"
-                            : r.threads_status === "skipped"
-                            ? "Preview only"
-                            : r.threads_status}
+                          {r.threads_status === "posted" ? "Posted ✓" : "Ready"}
                         </span>
                       </div>
                       <p className="text-sm leading-relaxed text-zinc-900 dark:text-zinc-50 break-keep">
@@ -285,12 +292,30 @@ export function ReviewSheet({ cart, language, onDone, onBack }: Props) {
                           </span>
                         ))}
                       </div>
+                      {r.threads_status !== "posted" && (
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => copyThreadsText(r.threads_text!, r.id || r.dish_name)}
+                            className="flex-1 text-[12px] font-medium py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          >
+                            {copiedId === (r.id || r.dish_name) ? "Copied ✓" : "Copy text"}
+                          </button>
+                          <a
+                            href={`https://www.threads.net/intent/post?text=${encodeURIComponent(r.threads_text!)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 text-center text-[12px] font-semibold py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
+                          >
+                            Share on Threads ↗
+                          </a>
+                        </div>
+                      )}
                     </li>
                   ))}
               </ul>
               <p className="text-[11px] text-zinc-500 leading-relaxed">
-                Your review is published anonymously to MenuLens Threads — Korean diners can
-                react and leave tips. Phase 2 will surface those replies back to you.
+                AI가 생성한 익명 포스트입니다. Threads에 공유하면 한국 식당과 방문자들이 외국인의 시각으로 한식을 발견할 수 있어요.
               </p>
             </section>
           )}

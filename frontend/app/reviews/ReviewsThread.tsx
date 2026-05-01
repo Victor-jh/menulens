@@ -25,6 +25,14 @@ export function ReviewsThread() {
   const [reviews, setReviews] = useState<ReviewOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | number | null>(null);
+
+  const copyThreadsText = (text: string, id: string | number) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
   const [filter, setFilter] = useState<"all" | "recommend" | "positive" | "mixed" | "negative">(
     "all"
   );
@@ -223,6 +231,25 @@ export function ReviewsThread() {
                   </span>
                   <span>{shortDate(r.created_at)}</span>
                 </div>
+                {r.threads_text && r.threads_status !== "posted" && (
+                  <div className="flex gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => copyThreadsText(r.threads_text!, r.id || `${r.dish_name}-${r.created_at}`)}
+                      className="text-[11px] px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      {copiedId === (r.id || `${r.dish_name}-${r.created_at}`) ? "Copied ✓" : "Copy"}
+                    </button>
+                    <a
+                      href={`https://www.threads.net/intent/post?text=${encodeURIComponent(r.threads_text)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] px-2 py-1 rounded-md bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 font-medium hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
+                    >
+                      Threads ↗
+                    </a>
+                  </div>
+                )}
               </li>
             );
           })}

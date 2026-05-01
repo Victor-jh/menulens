@@ -5,6 +5,86 @@
 
 ---
 
+## ADR-017: 2026-05-02 (D12) · v1 컴포넌트 deprecation + 단일 production path
+
+**결정**: `frontend/app/components/{Onboarding,Upload,Results}.tsx` v1 + `flag.ts` feature gate 모두 삭제 (1488 lines deleted). `MenuLensApp.tsx`의 v1/v2 ternary 9건 제거. **v2가 유일한 production path**.
+
+**배경**:
+- D11 v2 라이브 후 24시간 prod 검증 (8 E2E + 4 페르소나 + 모바일 시각 confirm)
+- v1과 v2 dual-track 유지 = 변경 시 매번 2배 작업, 평가자 코드 리뷰에서 dead code 의심
+- `flag.ts` `useUiV2()` 게이트는 `vercel env add`의 trailing newline bug (D11 함정 21번)으로 한 번 깨짐 — 게이트 자체가 추가 위험 surface
+
+**대안 검토**:
+- (a) 유지하고 v1을 fallback으로 둠 → 영구 dead code 유지비용 ↑
+- (b) v1을 `legacy/` 디렉터리로 이동 → 여전히 import 가능, dual-track 미해결
+- (c) **삭제** ← 채택. git 이력에서 언제든 복원 가능, 단일 path는 평가/디버그/유지보수 모두 단순.
+
+**결과**:
+- ResultsV2 1036→451 라인 (D11 parts/ 분리 후), v1 Results.tsx 삭제로 누적 ~3000 라인 감소
+- 평가 점수: 코드 가독성 7→8.5, 유지보수성 6.5→8.5
+
+**관련**: ADR-014 (LOD), commit `a8469f4`.
+
+---
+
+## ADR-016: 2026-05-02 (D12) · `_lod_shared.py` — agent 간 cross-cutting utility 추출
+
+**결정**: `tour_lod`와 `dish_finder`가 공유하던 SPARQL endpoint 상수·`run_sparql`·geo helpers를 `backend/agents/_lod_shared.py` (121 lines) 신규 모듈로 추출. 양쪽 agent는 이 모듈에서 import.
+
+**배경**:
+- `dish_finder`(D11 Phase 2) 작성 시 `tour_lod`의 `_SPARQL_ENDPOINT`, `_haversine_m`, `_run_sparql` 등 8개 private 식별자를 직접 import (`from backend.agents.tour_lod import _SPARQL_ENDPOINT, _haversine_m, ...`)
+- 안티패턴: private API 의존 → `tour_lod` 리팩터 시 `dish_finder` 조용히 깨짐
+- D12 audit에서 이 의존성을 정리 대상으로 식별
+
+**대안 검토**:
+- (a) `tour_lod`의 private 함수를 public으로 승격 (`_haversine_m` → `haversine_m`) → `tour_lod`이 cross-cutting hub가 되어 의도와 어긋남
+- (b) **`_lod_shared.py` 신규 모듈** ← 채택. 두 agent 모두 동등하게 import, ownership clear
+- (c) `backend/lib/` 디렉터리 신설 → 13개 agent 1개 모듈만 옮기는 건 over-architect
+
+**결과**:
+- `dish_finder.py`: 281→242 lines (run_sparql 중복 정의 제거)
+- `tour_lod.py`: 343→287 lines (_haversine_m 등 5개 helper 제거)
+- private import 안티패턴 0건
+
+**관련**: ADR-014 (LOD), commit `a8469f4`.
+
+---
+
+## ADR-015: 2026-05-02 (D11/D12) · Hermes 라우터 패턴 — 단일 업로드, 자동 분기
+
+**결정**: `backend/agents/image_classifier.py` 신규 (Gemini Vision JSON 분류, 4 kind: menu/single_dish/table_with_dishes/not_food). `/analyze` 엔드포인트가 classifier + menu_reader를 **parallel** (asyncio.create_task) 실행 후 결합 판정으로 dispatch. **Phase 2**: classifier가 single_dish 검출 시 `dish_finder` (LOD ktop:bestMenu reverse SPARQL) 호출.
+
+**배경**:
+- 사용자가 "메뉴판이세요? 음식 사진이세요?" 모드 토글을 직접 선택 = 외국인 30초 결정 게임의 불필요한 인지 부담
+- TourAPI 4.0 LOD `ktop:bestMenu`는 통상 식당 상세 페이지 표시용 데이터 — 이를 dish↔식당 양방향 인덱스로 invert하는 활용은 LOD RDF 그래프 강점을 가장 잘 살림
+- "지인 인스타그램에서 본 음식 → 그 음식 파는 식당 5곳" decision loop closing이 외국인 use case 2배 확장
+
+**대안 검토**:
+- (a) menu_reader에 분류 책임 통합 → 50줄짜리 prompt가 더 복잡해져 단일 책임 원칙 위반. RAG 의미 검색 수정 시 분류 로직도 같이 깨질 위험
+- (b) 사용자 모드 토글 유지 → 인지 부담 + 첫 사용자 오선택 시 round-trip 30s
+- (c) **별도 Hermes classifier + parallel dispatch** ← 채택. classifier 1회 호출 ~500ms-1s 추가지만 menu_reader와 동시 실행으로 wall-clock 영향 거의 0 (단일 호출 10.65s vs 라우터 11.64s)
+
+**결합 판정 규칙** (`/analyze`):
+- `items >= 3` → "menu" (classifier 무관, menu_reader 신뢰)
+- `items == 0 + classifier conf >= 0.85 + not_food` → 친화 거절 (`warnings:["not_a_menu"]`)
+- `items == 0 + classifier conf >= 0.7` → classifier kind 채택
+- `items 1-2 + classifier strong (>=0.85)` → classifier kind
+- 그 외 → "menu" 안전 fallback
+
+**Phase 2 dish_finder**:
+- SPARQL: `?s ktop:bestMenu ?bestMenu FILTER(CONTAINS(LCASE(?bestMenu), LCASE("비빔밥")))`
+- 1회 retry + stale-cache (LOD outage 회복력)
+- ResultsV2 RestaurantsServingThisDish 컴포넌트로 카루셀 표시
+
+**결과**:
+- 모드 토글 UI 삭제 → 단일 업로드 UX
+- proposal §2.2 "3 에이전트" → "4 에이전트 (Hermes 라우터 + 3 분석)"
+- 역대 13회 수상작 0건의 LOD bestMenu 양방향 인덱스 → 14회차 first-mover
+
+**관련**: ADR-014 (LOD), ADR-016 (shared util), commits `62c49ad` (Phase 1), `42963c1` (Phase 2).
+
+---
+
 ## ADR-009: 2026-04-25 · TTS 프로바이더 — Gemini gemini-2.5-flash-preview-tts
 **결정**: D6 한국어 주문 음성 생성에 **Gemini TTS 모델** 사용. Google Cloud Text-to-Speech 서비스계정 사용 안 함.
 **배경**: D6 진입 시 `.env`에 `GOOGLE_APPLICATION_CREDENTIALS=./gcloud-key.json` 설정되어 있으나 파일 부재. Google Cloud TTS 사용하려면 GCP 프로젝트 생성·결제수단 등록·서비스계정 키 발급 필요 (ADR-008과 동일 회피 사유).

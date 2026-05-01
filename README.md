@@ -5,9 +5,14 @@
 
 한국 식당 앞에 선 외국인이 메뉴판 사진 한 장으로 "이 메뉴를 시켜도 될지"를 **4초 안에** 판단할 수 있도록 돕는 AI 어시스턴트.
 
+[![CI](https://github.com/Victor-jh/menulens/actions/workflows/ci.yml/badge.svg)](https://github.com/Victor-jh/menulens/actions/workflows/ci.yml)
+[![Live](https://img.shields.io/badge/live-menulens--app.vercel.app-3CA86A?logo=vercel&logoColor=white)](https://menulens-app.vercel.app)
 [![Status](https://img.shields.io/badge/status-Hard_Gate_PASS-brightgreen)]()
+[![Tests](https://img.shields.io/badge/pytest-28%2F28%20passing-brightgreen)]()
+[![A11y](https://img.shields.io/badge/WCAG-2.1_AA-1F6E40)]()
 [![Competition](https://img.shields.io/badge/2026_KTO-관광데이터_활용_공모전-blue)]()
 [![Data](https://img.shields.io/badge/TourAPI_4.0-LOD_SPARQL_+_KorService2-purple)]()
+[![Persona](https://img.shields.io/badge/personas_verified-Yui%20%C2%B7%20Aisha%20%C2%B7%20Chen%20%C2%B7%20Mike-7A4F11)]()
 
 ---
 
