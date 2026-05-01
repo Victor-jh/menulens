@@ -1,16 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Onboarding } from "./components/Onboarding";
-import { Upload } from "./components/Upload";
-import { Results } from "./components/Results";
 import { OrderSheet } from "./components/OrderSheet";
 import { ReviewSheet } from "./components/ReviewSheet";
 import { analyzeMenu, API_BASE_URL } from "./lib/api";
 import type { AnalyzeResponse, AnalyzedItem, CartItem, UserProfile } from "./types";
-// v2 design (Friendly / Pickle Plus tone) — gated by NEXT_PUBLIC_UI_VERSION.
-// See docs/design/handoff/menulens/ for the source artifacts.
-import { useUiV2 } from "./design/v2/flag";
+// v2 design (Friendly / Pickle Plus tone) is the only path now.
+// v1 components removed in D12 cleanup (1469 lines + flag gate gone).
+// See docs/design/handoff/menulens/ for the original Claude.ai/design artifacts.
 import { OnboardingV2 } from "./design/v2/components/OnboardingV2";
 import { UploadV2 } from "./design/v2/components/UploadV2";
 import { ResultsV2 } from "./design/v2/components/ResultsV2";
@@ -239,82 +236,50 @@ export function MenuLensApp() {
   const debugOn =
     typeof window !== "undefined" && /[?&]debug=1\b/.test(window.location.search);
 
-  // Per-item handoff (v2 ShowStaff phase).
+  // Per-item handoff (ShowStaff phase).
   const [staffItem, setStaffItem] = useState<AnalyzedItem | null>(null);
   const handleShowStaff = (item: AnalyzedItem) => {
     setStaffItem(item);
     setPhase("showStaff");
   };
 
-  const v2 = useUiV2();
-
   return (
     <main
-      className={
-        v2
-          ? "min-h-screen text-[color:var(--color-ink)]"
-          : "min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50"
-      }
-      style={v2 ? { background: "#FFF8EE" } : undefined}
+      className="min-h-screen text-[color:var(--color-ink)]"
+      style={{ background: "#FFF8EE" }}
     >
       {debugOn && <DebugOverlay />}
-      {phase === "onboarding" &&
-        (v2 ? (
-          <OnboardingV2
-            profile={profile}
-            setProfile={setProfile}
-            onNext={() => setPhase("upload")}
-            onSample={handleSample}
-            sampleBusy={sampleBusy}
-            sampleError={sampleError}
-            onSkip={() => setPhase("upload")}
-          />
-        ) : (
-          <Onboarding
-            profile={profile}
-            setProfile={setProfile}
-            onNext={() => setPhase("upload")}
-            onSample={handleSample}
-            sampleBusy={sampleBusy}
-            sampleError={sampleError}
-            onSkip={() => setPhase("upload")}
-          />
-        ))}
-      {phase === "upload" &&
-        (v2 ? (
-          <UploadV2
-            onAnalyze={handleAnalyze}
-            onBack={() => setPhase("onboarding")}
-            language={profile.language}
-          />
-        ) : (
-          <Upload onAnalyze={handleAnalyze} onBack={() => setPhase("onboarding")} />
-        ))}
-      {phase === "results" &&
-        result &&
-        (v2 ? (
-          <ResultsV2
-            data={result}
-            imageFile={analyzedFile}
-            language={profile.language}
-            profile={profile}
-            cart={cart}
-            onCartChange={updateCart}
-            onReset={() => setPhase("upload")}
-            onCheckout={() => setPhase("order")}
-            onShowStaff={handleShowStaff}
-          />
-        ) : (
-          <Results
-            data={result}
-            imageFile={analyzedFile}
-            language={profile.language}
-            cart={cart}
-            onCartChange={updateCart}
-            onReset={() => setPhase("upload")}
-            onCheckout={() => setPhase("order")}
-          />
-        ))}
+      {phase === "onboarding" && (
+        <OnboardingV2
+          profile={profile}
+          setProfile={setProfile}
+          onNext={() => setPhase("upload")}
+          onSample={handleSample}
+          sampleBusy={sampleBusy}
+          sampleError={sampleError}
+          onSkip={() => setPhase("upload")}
+        />
+      )}
+      {phase === "upload" && (
+        <UploadV2
+          onAnalyze={handleAnalyze}
+          onBack={() => setPhase("onboarding")}
+          language={profile.language}
+        />
+      )}
+      {phase === "results" && result && (
+        <ResultsV2
+          data={result}
+          imageFile={analyzedFile}
+          language={profile.language}
+          profile={profile}
+          cart={cart}
+          onCartChange={updateCart}
+          onReset={() => setPhase("upload")}
+          onCheckout={() => setPhase("order")}
+          onShowStaff={handleShowStaff}
+        />
+      )}
       {phase === "showStaff" && staffItem && (
         <ShowStaffV2
           item={staffItem}

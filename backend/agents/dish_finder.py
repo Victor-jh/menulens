@@ -28,14 +28,13 @@ from typing import Optional
 import httpx
 from pydantic import BaseModel, Field
 
-from backend.agents.tour_lod import (
-    _SPARQL_ENDPOINT,
-    _DEFAULT_TIMEOUT,
-    _CACHE_TTL,
-    _GASTRO_CLASS_URI,
-    _content_id_from_uri,
-    _category_id_from_uri,
-    _haversine_m,
+from backend.agents._lod_shared import (
+    CACHE_TTL as _CACHE_TTL,
+    GASTRO_CLASS_URI as _GASTRO_CLASS_URI,
+    haversine_m as _haversine_m,
+    content_id_from_uri as _content_id_from_uri,
+    category_id_from_uri as _category_id_from_uri,
+    run_sparql as _run_sparql,
 )
 
 
@@ -100,38 +99,6 @@ SELECT ?s ?name ?lat ?lng ?bestMenu ?category ?tel ?address ?image WHERE {{
 }}
 LIMIT {limit}
 """.strip()
-
-
-async def _run_sparql(query: str) -> Optional[dict]:
-    """Same retry+single-attempt-backoff pattern as tour_lod._run_sparql."""
-    last_err: Optional[Exception] = None
-    async with httpx.AsyncClient(
-        timeout=_DEFAULT_TIMEOUT, follow_redirects=True
-    ) as client:
-        for attempt in (0, 1):
-            try:
-                resp = await client.get(
-                    _SPARQL_ENDPOINT,
-                    params={"query": query, "format": "json"},
-                    headers={"Accept": "application/sparql-results+json"},
-                )
-                resp.raise_for_status()
-                ct = resp.headers.get("content-type", "")
-                if "json" not in ct.lower() and "sparql-results" not in ct.lower():
-                    return None
-                try:
-                    return resp.json()
-                except Exception:
-                    return None
-            except httpx.HTTPError as e:
-                last_err = e
-                if attempt == 0:
-                    await asyncio.sleep(0.25)
-                    continue
-                raise
-    if last_err:
-        raise last_err
-    return None
 
 
 async def find_restaurants_by_dish(

@@ -33,7 +33,6 @@ This needs no extension functions and stays portable across triplestores.
 from __future__ import annotations
 
 import asyncio
-import math
 import time
 from typing import Optional
 
@@ -44,13 +43,15 @@ from backend.agents.tour_api import (
     Restaurant,
     RestaurantDetail,
 )
-
-_SPARQL_ENDPOINT = "http://data.visitkorea.or.kr/sparql"
-_DEFAULT_TIMEOUT = 12.0
-_CACHE_TTL = 3600.0
-
-# kto:Gastro is the parent class — covers all 6 cuisine subclasses.
-_GASTRO_CLASS_URI = "http://data.visitkorea.or.kr/ontology/Gastro"
+from backend.agents._lod_shared import (
+    CACHE_TTL as _CACHE_TTL,
+    GASTRO_CLASS_URI as _GASTRO_CLASS_URI,
+    bbox_for as _bbox_for,
+    haversine_m as _haversine_m,
+    content_id_from_uri as _content_id_from_uri,
+    category_id_from_uri as _category_id_from_uri,
+    run_sparql as _run_sparql,
+)
 
 # KTO category codes (data.visitkorea.or.kr/resource/<code>) for restaurants.
 # Used by the frontend to localize cat3 if it wants. Not strictly needed here.
@@ -68,33 +69,8 @@ _DETAIL_CACHE: dict[tuple, tuple[float, RestaurantDetail]] = {}
 _LOCK = asyncio.Lock()
 
 
-def _bbox_for(lat: float, lon: float, radius_m: int) -> tuple[float, float, float, float]:
-    """Bounding box in degrees that fully contains the (lat, lon, radius) circle."""
-    dlat = radius_m / 111_320.0
-    cos_lat = max(0.001, math.cos(math.radians(lat)))
-    dlon = radius_m / (111_320.0 * cos_lat)
-    return lat - dlat, lat + dlat, lon - dlon, lon + dlon
 
 
-def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> int:
-    R = 6_371_000.0
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    dp = math.radians(lat2 - lat1)
-    dl = math.radians(lon2 - lon1)
-    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
-    return int(2 * R * math.asin(min(1.0, math.sqrt(a))))
-
-
-def _content_id_from_uri(uri: str) -> Optional[str]:
-    if not uri:
-        return None
-    return uri.rsplit("/", 1)[-1] or None
-
-
-def _category_id_from_uri(uri: Optional[str]) -> Optional[str]:
-    if not uri:
-        return None
-    return uri.rsplit("/", 1)[-1] if "/" in uri else uri
 
 
 def _build_nearby_query(
@@ -123,41 +99,6 @@ SELECT ?s ?name ?lat ?lng ?category ?tel ?address ?image ?bestMenu WHERE {{
 LIMIT {limit}
 """.strip()
 
-
-async def _run_sparql(query: str) -> Optional[dict]:
-    """
-    GET against the LOD endpoint with one retry on transient failure.
-    Visit Korea SPARQL has periodic 404 windows — single retry catches the
-    common short-flap case. Total worst-case wait ≈ timeout × 2 + 250ms.
-    """
-    last_err: Optional[Exception] = None
-    async with httpx.AsyncClient(
-        timeout=_DEFAULT_TIMEOUT, follow_redirects=True
-    ) as client:
-        for attempt in (0, 1):
-            try:
-                resp = await client.get(
-                    _SPARQL_ENDPOINT,
-                    params={"query": query, "format": "json"},
-                    headers={"Accept": "application/sparql-results+json"},
-                )
-                resp.raise_for_status()
-                ct = resp.headers.get("content-type", "")
-                if "json" not in ct.lower() and "sparql-results" not in ct.lower():
-                    return None
-                try:
-                    return resp.json()
-                except Exception:
-                    return None
-            except httpx.HTTPError as e:
-                last_err = e
-                if attempt == 0:
-                    await asyncio.sleep(0.25)
-                    continue
-                raise
-    if last_err:
-        raise last_err
-    return None
 
 
 async def search_nearby_via_lod(
