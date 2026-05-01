@@ -24,13 +24,15 @@
 | 3 | 0:10~0:20 | 10s | **Problem** | 메뉴판 중앙 + 4개 질문 풍선 | Zoom out | "What is this?" · "Is this price fair?" · "Can I eat this?" · "How do I order?" | "이게 뭐죠? · 가격이 맞나요? · 먹을 수 있나요? · 어떻게 주문하죠?" | BGM upbeat 전환 |
 | 4 | 0:20~0:25 | 5s | **Solution (Statement)** | 휴대폰 화면, 카메라 뷰 올라옴 | POV | **"DON'T READ."** | **"읽지 마세요."** | BGM 텐션 상승 |
 | 5 | 0:25~0:30 | 5s | Solution (cont.) | 찰칵 → 화면 플래시 → 로딩 애니메이션 (3초 원형) | Close-up | **"JUST ORDER WHAT'S GREEN."** | **"초록색만 주문하세요."** | 셔터음 SFX |
-| 6 | 0:30~0:45 | 15s | **Live Demo — 결과 화면** | 🟢🟡🔴 오버레이 박스가 메뉴판 위에 뜸 | POV + 화면 녹화 | "Green · safe · fair price" | "초록 · 안전 · 정상가" | 알림 SFX ("딩") |
-| 7 | 0:45~0:55 | 10s | Live Demo — 주문 | 🟢 김치찌개 탭 → 한국어 TTS 재생 → 카운터 직원에게 내밀기 | POV + Over-shoulder | "One tap. Korean audio. Order done." | "탭 한 번. 한국어 재생. 주문 완료." | TTS 음성 "김치찌개 하나 주세요" |
-| 8 | 0:55~1:10 | 15s | **Why It Matters** | 인포그래픽 3개 숫자 카드 | Card slide-in | "20M tourists in 2026 · 41.8% menu mistranslation · ₩300M lawsuit at Gwangjang Market" | "2026년 방한 2,000만 · 메뉴 오역 41.8% · 광장시장 3억원 소송" | 내레이션 |
-| 9 | 1:10~1:25 | 15s | **Data Stack** | 6개 공공데이터 로고 그리드 | Card grid | "TourAPI + 5 public datasets · First LOD SPARQL use in 13 years of the competition" | "TourAPI + 5개 공공데이터 · 역대 공모전 최초 LOD SPARQL 활용" | BGM 클라이맥스 |
-| 10 | 1:25~1:30 | 5s | **Closing** | MenuLens 로고 + QR + URL | Static | "menulens.app · github.com/Victor-jh/menulens" | "**One tap. Order what's green.**" | BGM FadeOut |
+| 6 | 0:30~0:42 | 12s | **Use Case 1 — Menu Board** | 메뉴판 사진 → 🟢🟡🔴 카드 → 🟢 탭 → 한국어 TTS | POV + 화면 녹화 | "One photo. Pick green. Korean audio for the staff." | "사진 한 장. 초록만. 점원에게 한국어 재생." | 알림 SFX + TTS "김치찌개 하나 주세요" |
+| 7 | 0:42~0:54 | **12s** | **Use Case 2 — Food Photo → Restaurant** **(D11 NEW)** | 친구 인스타 음식 사진 → MenuLens 업로드 → "비빔밥, 안전해요" + 식당 카루셀 5곳 | POV + 화면 녹화 + zoom into restaurant card | "Saw a dish online? Find where to eat it. Same app." | "본 음식 → 어디서 먹지? 같은 앱." | UI tap SFX + LOD swoosh |
+| 8 | 0:54~1:06 | 12s | **Why It Matters** | 인포그래픽 3개 숫자 카드 | Card slide-in | "20M tourists in 2026 · 41.8% menu mistranslation · ₩300M lawsuit at Gwangjang Market" | "2026년 방한 2,000만 · 메뉴 오역 41.8% · 광장시장 3억원 소송" | 내레이션 |
+| 9 | 1:06~1:23 | 17s | **Data Stack + Hermes** | 6개 공공데이터 로고 그리드 → Hermes 라우터 다이어그램 → LOD bestMenu 양방향 | Card grid → diagram | "TourAPI + 5 datasets · 14th-year first LOD use · LOD bestMenu inverted into a dish↔restaurant index." | "TourAPI + 5 공공데이터 · 역대 첫 LOD 활용 · bestMenu 양방향 인덱스." | BGM 클라이맥스 |
+| 10 | 1:23~1:30 | 7s | **Closing** | MenuLens 로고 + QR + URL | Static | "menulens-app.vercel.app · github.com/Victor-jh/menulens" | "**One tap. Order what's green.**" | BGM FadeOut |
 
 총 길이: **90초**.
+
+> **D11 변경 노트**: Hermes Phase 2 라이브 후 use case 2 (음식 사진 → 식당) 추가. 기존 Demo 1 (메뉴판) 25s → 12s로 압축, Why It Matters 15s → 12s, Data Stack 15s → 17s (Hermes 다이어그램 1샷 추가). 여전히 90s 정확.
 
 ---
 
@@ -103,7 +105,7 @@
 
 ---
 
-### [0:30~0:55] Live Demo — 30초 집중 구간 (가장 중요)
+### [0:30~0:42] Live Demo — 30초 집중 구간 (가장 중요)
 
 **영상 연출 (POV + 화면 녹화 교차)**:
 
@@ -142,7 +144,46 @@
 
 ---
 
-### [0:55~1:10] Why It Matters — 3개 숫자 카드
+### [0:42~0:54] Use Case 2 — Food Photo → Restaurant (D11 신규)
+
+**연출 의도**: "메뉴판 앞" use case는 1개 식당 안에서의 결정. 그러나 외국인 여행자는 그 식당에 들어가기 전에 **이미 어떤 음식을 먹을지** 결정하고 싶다. SNS·창문·지인 폰에서 본 음식 사진 → MenuLens → "이 음식 안전 OK + 그 음식 파는 식당 5곳" → decision loop closed. **같은 앱, 같은 1탭, 다른 시작점**.
+
+**영상 연출 (10초 압축)**:
+
+**[0:42~0:46] 진입 — 인스타그램 스크롤 (4s)**
+- iPhone 화면: 친구의 음식 인스타 피드를 손으로 스크롤
+- 비빔밥 사진 1장에서 멈춤
+- **자막 (EN)**: "Saw a dish online?" / **(KR)**: "본 음식, 어디서 먹지?"
+- SFX: scroll wheel + tap
+
+**[0:46~0:50] 업로드 (4s)**
+- "Save to Photos" → MenuLens 앱 → 갤러리 업로드
+- 또는 split-screen: 한 쪽 인스타·다른 쪽 MenuLens "분석 중" 스피너
+- **자막 (EN)**: "Same MenuLens app." / **(KR)**: "같은 MenuLens 앱."
+
+**[0:50~0:54] 결과 — 식당 카루셀 (4s)**
+- 화면 녹화: ResultsV2 헤더 "비빔밥, 안전해요" (pickle green)
+- 아래 RestaurantsServingThisDish 카루셀: 식당 카드 5장 가로 스크롤
+- 카드 1: 사진 + "전주식당 · ⭐ 비빔밥" + 거리 표시
+- **자막 (EN)**: "Find where to eat it. 5 restaurants." / **(KR)**: "그 음식 파는 식당 5곳 즉시."
+
+**핵심 메시지** (1줄로):
+> "Whether you see a menu OR a dish photo — same single tap, same green-yellow-red answer. We close both ends of the discovery loop."
+> "메뉴판이든 음식 사진이든 — 같은 탭 한 번, 같은 🟢🟡🔴 답변. 발견의 양 끝을 모두 닫는다."
+
+**기술 백그라운드 (영상에는 안 나오지만 평가자가 GitHub에서 발견할 것)**:
+- Hermes Classifier (Gemini Vision): 업로드 이미지가 menu/single_dish/not_food인지 자동 분류
+- Dish Finder: LOD `?s ktop:bestMenu ?dish` 역방향 SPARQL — bestMenu 속성을 음식↔식당 양방향 인덱스로 invert
+- 14회 공모전의 LOD bestMenu invert 활용 first-mover
+
+**Plan B (LOD outage 시)**:
+- LOD가 outage면 RestaurantsServingThisDish가 "🛰️ 일시 응답 지연" 메시지 표시
+- 영상 촬영 직전 cache prime 한 번 fire (`/restaurants/by_dish?dish_ko=비빔밥` 1회 호출)
+- LOD 복구 안 되면 stock B-roll 식당 카드 5장으로 visual mock 사용 (편집 단계)
+
+---
+
+### [0:54~1:06] Why It Matters — 3개 숫자 카드
 
 **영상 연출**:
 - 검은 배경 위에 숫자가 큰 카드 3장이 순차적으로 슬라이드인
@@ -178,7 +219,7 @@ lawsuit at Gwangjang Market (2025.11)
 
 ---
 
-### [1:10~1:25] Data Stack — TourAPI 강조
+### [1:06~1:23] Data Stack — TourAPI 강조
 
 **영상 연출**:
 - 6개 데이터 출처 로고/텍스트를 격자 배치 (2×3)
@@ -201,7 +242,7 @@ lawsuit at Gwangjang Market (2025.11)
 
 ---
 
-### [1:25~1:30] Closing — CTA + QR
+### [1:23~1:30] Closing — CTA + QR
 
 **영상 연출**:
 - MenuLens 로고 (단순, 📸 + 🟢🟡🔴)
@@ -307,7 +348,7 @@ SFX: Pixabay Free Sound Effects
 
 **대안 구성 (스크린 녹화만)**:
 1. 웹앱에서 샘플 메뉴 이미지 업로드 → 결과 화면 녹화
-2. 위 스크립트의 [0:30~0:55] 구간만 화면 녹화로 대체
+2. 위 스크립트의 [0:30~0:42] 구간만 화면 녹화로 대체
 3. 실제 식당 샷 없이, 데모 자막만으로 진행
 4. 영상 길이 70~80초로 단축 가능
 
@@ -359,6 +400,6 @@ SFX: Pixabay Free Sound Effects
 
 **시연 영상 이중 활용**:
 - [0:30~0:45] 결과 화면 4건은 위 표에서 발췌 → 영상 신뢰도 ↑
-- [1:10~1:25] LOD SPARQL 카드에 nearby 5건(대상해 214m / 사조참치 / 루이 / 광화문국밥 / 만족오향족발)을 0.5초 시각화 추가 가능
-- [1:25~1:30] CTA 직전 D8 측정 화면 캡처 0.5초 컷이 evidence 한 단계 더 단단화
+- [1:06~1:23] LOD SPARQL 카드에 nearby 5건(대상해 214m / 사조참치 / 루이 / 광화문국밥 / 만족오향족발)을 0.5초 시각화 추가 가능
+- [1:23~1:30] CTA 직전 D8 측정 화면 캡처 0.5초 컷이 evidence 한 단계 더 단단화
 
