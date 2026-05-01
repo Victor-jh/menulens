@@ -373,12 +373,14 @@ function PillTab({
       onClick={onClick}
       className="font-ko whitespace-nowrap"
       style={{
-        padding: "8px 14px",
+        // D12 audit P1: 44px+ touch target (Apple HIG)
+        minHeight: 44,
+        padding: "10px 16px",
         borderRadius: 99,
         background: active ? (toneColors?.c ?? FR.ink) : FR.cream2,
         color: active ? "#fff" : FR.ink,
         border: `1px solid ${active ? "transparent" : FR.border}`,
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 600,
         letterSpacing: -0.2,
         display: "inline-flex",
@@ -388,14 +390,14 @@ function PillTab({
           active && toneColors ? `0 2px 8px ${toneColors.c}40` : "none",
       }}
     >
-      {toneColors && <span style={{ fontSize: 11 }}>{toneColors.emoji}</span>}
+      {toneColors && <span style={{ fontSize: 12 }}>{toneColors.emoji}</span>}
       <span>{label}</span>
       <span
         style={{
           fontFamily: '"JetBrains Mono", monospace',
-          fontSize: 10,
+          fontSize: 11,
           opacity: active ? 0.85 : 0.55,
-          padding: "1px 6px",
+          padding: "2px 7px",
           borderRadius: 99,
           background: active ? "rgba(255,255,255,0.2)" : "rgba(31,26,20,0.06)",
         }}

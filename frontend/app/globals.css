@@ -57,7 +57,11 @@
 }
 
 body {
-  background: var(--background);
+  /* D12 a11y P1: body bg matches the v2 cream surface so desktop viewports
+     wider than 448 px don't show the dark zinc-950 gutter on either side
+     of the max-w-md app container. The mobile viewport is unaffected.
+     Inverted in dark mode via prefers-color-scheme below. */
+  background: var(--color-cream, #FFF8EE);
   color: var(--foreground);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;

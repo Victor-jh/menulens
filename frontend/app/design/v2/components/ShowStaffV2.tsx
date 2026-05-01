@@ -223,13 +223,17 @@ export function ShowStaffV2({ item, profile, onBack }: Props) {
           {phrase}
         </div>
         {item.translated && (
+          // D12 audit P1: bumped from 13px/inkSoft to 15px/ink so the
+          // tourist holding the phone can verify what they're ordering at
+          // the same glance the server reads the Korean phrase above.
           <div
             className="font-ko"
             style={{
-              fontSize: 13,
-              color: FR.inkSoft,
+              fontSize: 15,
+              color: FR.ink,
               marginTop: 6,
               fontStyle: "italic",
+              opacity: 0.85,
             }}
           >
             “{item.translated}{" "}

@@ -215,6 +215,7 @@ export function NearbyRestaurants({ language }: Props) {
         </h2>
         <div className="flex gap-1 text-[11px]">
           {RADIUS_PRESETS.map((r) => (
+            // D12 audit P1: 44×36 → 44×44 touch target (Apple HIG)
             <button
               key={r}
               type="button"
@@ -222,9 +223,10 @@ export function NearbyRestaurants({ language }: Props) {
               aria-pressed={r === radius}
               className={
                 r === radius
-                  ? "rounded-md px-2 py-1 bg-[#3CA86A] text-white font-medium"
-                  : "rounded-md px-2 py-1 bg-[#F4ECDF] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                  ? "rounded-lg px-3 bg-[#226A3F] text-white font-semibold"
+                  : "rounded-lg px-3 bg-[#F4ECDF] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 font-medium"
               }
+              style={{ minHeight: 36, minWidth: 44 }}
             >
               {formatRadius(r)}
             </button>
