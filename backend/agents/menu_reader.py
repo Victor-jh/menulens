@@ -96,6 +96,14 @@ Photo mode (visual dish identification) is a RARE EXCEPTION reserved for images
 where there is NO printed price list at all (single plate close-ups, food on a
 table with no menu, instagram food shots).
 
+NOT-A-MENU REJECTION: if the image is clearly NOT a restaurant menu or food —
+e.g., a receipt (영수증), shop sign without menu (간판), shopping list, random
+text document, screenshot of an app, blank/black/blurry beyond OCR, person/scenery,
+business card, ID card — return:
+  { "items": [], "ocr_quality": 0.0, "warnings": ["not_a_menu"] }
+Do NOT invent menu items from non-menu sources. Adversarial tourists sometimes
+upload by mistake; we want a friendly client-side error, not hallucinated dishes.
+
 Reply with VALID JSON ONLY — no natural language, no apology."""
 
 

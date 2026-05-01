@@ -218,6 +218,20 @@ export function MenuLensApp() {
     // and any error reported in-place. The Upload component manages its own busy spinner.
     setAnalyzedFile(file);
     const r = await analyzeMenu(file, profile, mode);
+
+    // not_a_menu rejection: backend returns items=[] + warnings:["not_a_menu"]
+    // when the image is clearly a receipt/sign/random photo. Stay on Upload
+    // and surface a friendly message instead of advancing to an empty Results.
+    const notAMenu =
+      (r.items?.length ?? 0) === 0 &&
+      Array.isArray(r.warnings) &&
+      r.warnings.some((w) => /not_a_menu/i.test(String(w)));
+    if (notAMenu) {
+      throw new Error(
+        "메뉴판으로 보이지 않아요. 메뉴 이름과 가격이 보이는 사진으로 다시 찍어주세요."
+      );
+    }
+
     setResult(r);
     setPhase("results");
   };
