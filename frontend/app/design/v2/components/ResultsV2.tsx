@@ -127,6 +127,29 @@ export function ResultsV2({
         </div>
 
         <div className="px-5 pb-3">
+          {/* Hermes router indicator: tells the user which kind of image
+              the AI detected, so a single-dish photo doesn't get the
+              confusing "1 of 1 dishes are safe" copy. */}
+          {data.image_kind && data.image_kind !== "menu" && (
+            <div
+              className="font-ko mb-1"
+              style={{
+                fontSize: 11,
+                color: FR.fog,
+                fontFamily: '"JetBrains Mono", monospace',
+                letterSpacing: 1.2,
+                textTransform: "uppercase",
+              }}
+            >
+              {data.image_kind === "single_dish"
+                ? language === "ko"
+                  ? `🍽 음식 사진 인식${data.main_dish_ko ? ` · ${data.main_dish_ko}` : ""}`
+                  : `🍽 single dish detected${data.main_dish_ko ? ` · ${data.main_dish_ko}` : ""}`
+                : language === "ko"
+                  ? `🍽 식탁 사진 인식 (${(data.detected_dishes_ko ?? []).length}개 음식)`
+                  : `🍽 table photo detected · ${(data.detected_dishes_ko ?? []).length} dishes`}
+            </div>
+          )}
           <h2
             className="font-ko"
             style={{
@@ -137,7 +160,19 @@ export function ResultsV2({
               letterSpacing: -0.5,
             }}
           >
-            {language === "ko" ? (
+            {data.image_kind === "single_dish" && data.main_dish_ko ? (
+              language === "ko" ? (
+                <>
+                  <span style={{ color: FR.pickle }}>{data.main_dish_ko}</span>,{" "}
+                  당신에게 {counts.green > 0 ? "안전" : counts.red > 0 ? "주의" : "확인 필요"}해요
+                </>
+              ) : (
+                <>
+                  <span style={{ color: FR.pickle }}>{data.main_dish_ko}</span> looks{" "}
+                  {counts.green > 0 ? "safe" : counts.red > 0 ? "risky" : "uncertain"} for you
+                </>
+              )
+            ) : language === "ko" ? (
               <>
                 메뉴 {counts.all}개 중에서{" "}
                 <span style={{ color: FR.pickle }}>{counts.green}개</span>는

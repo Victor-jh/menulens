@@ -52,6 +52,7 @@ from backend.agents.reviews import (
 )
 from backend.agents import tour_api as _tour_api
 from backend.agents import tour_lod as _tour_lod
+from backend.agents.image_classifier import classify_image, ImageClassification
 
 
 # --- validation constants (P0.4 audit) ------------------------------------
@@ -145,6 +146,15 @@ class AnalyzeResponse(BaseModel):
     ocr_quality: float
     warnings: list[str] = []
     processing_time_seconds: float
+    # Hermes router classification (D11 P1):
+    #   "menu"              — printed menu list (default)
+    #   "single_dish"       — one cooked dish photo (no menu)
+    #   "table_with_dishes" — multiple dishes on a table (no menu)
+    #   "not_food"          — receipt / sign / random image
+    image_kind: str = "menu"
+    image_kind_confidence: float = 0.0
+    main_dish_ko: Optional[str] = None
+    detected_dishes_ko: Optional[list[str]] = None
 
 
 @app.get("/")
@@ -267,6 +277,19 @@ async def analyze_menu_endpoint(
         raise HTTPException(400, f"mode must be one of {sorted(_ALLOWED_MODES)}")
     force_mode = mode if mode in ("text", "photo") else None
 
+    # ── Hermes router ──────────────────────────────────────────────────
+    # Run the image classifier in PARALLEL with menu_reader. The router's
+    # output is advisory — menu_reader is the source of truth for whether
+    # a parseable menu was actually present. This keeps menu cases zero-cost
+    # latency-wise (both calls run concurrently) and lets the dispatcher
+    # combine signals at the end:
+    #   - menu_reader returned ≥3 items → "menu" (regardless of classifier)
+    #   - menu_reader returned 0 items + classifier says single_dish → identify dish
+    #   - menu_reader returned 0 items + classifier says not_food (high conf)
+    #     → friendly NOT_A_MENU rejection (no dish identification attempted)
+    classifier_task = asyncio.create_task(
+        classify_image(image_bytes, image.content_type or "image/jpeg")
+    )
     try:
         menu_result: MenuReadResult = await read_menu(
             image_bytes,
@@ -274,7 +297,10 @@ async def analyze_menu_endpoint(
             force_mode=force_mode,
         )
     except RuntimeError as e:
+        # Cancel the classifier so we don't leak a half-finished call.
+        classifier_task.cancel()
         raise HTTPException(502, f"Menu reading failed: {e}")
+    classifier: ImageClassification = await classifier_task
 
     # P0.3: cost guard — soft truncate large menus instead of rejecting.
     items_in = menu_result.items
@@ -327,11 +353,40 @@ async def analyze_menu_endpoint(
     if len(filtered) > MAX_TTS_ITEMS:
         warnings.append(f"TTS generated for first {MAX_TTS_ITEMS} items only.")
 
+    # Combine menu_reader truth with classifier hint to pick a single
+    # image_kind for the frontend. The frontend uses this to vary the
+    # Results header copy ("X of N dishes safe" vs "이 음식: 안전 ✓").
+    if len(analyzed_items) >= 3:
+        # Plenty of menu items → definitely a menu, regardless of classifier.
+        final_kind = "menu"
+    elif len(analyzed_items) == 0:
+        # No items: classifier decides. not_food rejection takes precedence
+        # (the frontend already short-circuits this via warnings:["not_a_menu"]).
+        final_kind = (
+            classifier.kind if classifier.confidence >= 0.7 else "menu"
+        )
+        if classifier.kind == "not_food" and classifier.confidence >= 0.85:
+            warnings.append("not_a_menu")
+    else:
+        # 1-2 items found. Trust classifier if it strongly disagrees with
+        # "menu", else default to menu mode.
+        if (
+            classifier.kind in ("single_dish", "table_with_dishes")
+            and classifier.confidence >= 0.85
+        ):
+            final_kind = classifier.kind
+        else:
+            final_kind = "menu"
+
     return AnalyzeResponse(
         items=analyzed_items,
         ocr_quality=menu_result.ocr_quality,
         warnings=warnings,
         processing_time_seconds=round(time.time() - start, 2),
+        image_kind=final_kind,
+        image_kind_confidence=classifier.confidence,
+        main_dish_ko=classifier.main_dish_ko,
+        detected_dishes_ko=classifier.detected_dishes_ko,
     )
 
 

@@ -51,11 +51,18 @@ export interface AnalyzedItem {
   free_side_likely?: boolean;
 }
 
+export type ImageKind = "menu" | "single_dish" | "table_with_dishes" | "not_food";
+
 export interface AnalyzeResponse {
   items: AnalyzedItem[];
   ocr_quality: number;
   warnings: string[];
   processing_time_seconds: number;
+  // Hermes router (D11): backend classifies image and dispatches accordingly.
+  image_kind?: ImageKind;
+  image_kind_confidence?: number;
+  main_dish_ko?: string | null;
+  detected_dishes_ko?: string[] | null;
 }
 
 export interface ReviewIn {

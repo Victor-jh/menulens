@@ -67,7 +67,7 @@ export function UploadV2({ onAnalyze, onBack, language }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<AnalyzeMode>("auto");
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // (D11 Hermes router) advanced mode toggle removed — backend auto-classifies.
   const stageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -272,66 +272,17 @@ export function UploadV2({ onAnalyze, onBack, language }: Props) {
       </div>
 
       {/* Mode toggle (advanced) */}
-      <details
-        className="mt-3"
-        open={showAdvanced}
-        onToggle={(e) =>
-          setShowAdvanced((e.target as HTMLDetailsElement).open)
-        }
+      {/* D11 Hermes router: auto-detects menu vs food vs not-food on the
+          backend. The 3-mode toggle has been removed in favor of single
+          upload UX — no cognitive load, server picks the right pipeline. */}
+      <p
+        className="font-ko mt-3 text-center"
+        style={{ fontSize: 11, color: FR.fog }}
       >
-        <summary
-          className="font-ko"
-          style={{
-            fontSize: 11,
-            color: FR.fog,
-            cursor: "pointer",
-            listStyle: "none",
-          }}
-        >
-          ⚙ {language === "ko" ? "고급" : "Advanced"} ({mode})
-        </summary>
-        <div
-          role="radiogroup"
-          aria-label="Detection mode"
-          className="mt-2 grid grid-cols-3 gap-1 text-xs p-1"
-          style={{
-            background: FR.cream2,
-            border: `1px solid ${FR.border}`,
-            borderRadius: 10,
-          }}
-        >
-          {(
-            [
-              { key: "auto", label: "Auto" },
-              { key: "text", label: "Menu" },
-              { key: "photo", label: "Food" },
-            ] as const
-          ).map((opt) => (
-            <button
-              key={opt.key}
-              type="button"
-              role="radio"
-              aria-checked={mode === opt.key}
-              onClick={() => setMode(opt.key)}
-              className="font-ko"
-              style={{
-                padding: "8px 10px",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                background: mode === opt.key ? FR.cream : "transparent",
-                color: mode === opt.key ? FR.ink : FR.inkSoft,
-                boxShadow:
-                  mode === opt.key
-                    ? "0 1px 2px rgba(0,0,0,0.06)"
-                    : "none",
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </details>
+        {language === "ko"
+          ? "✨ 메뉴판이든 음식 사진이든 자동으로 분석해요"
+          : "✨ Auto-detects menu boards or single dish photos"}
+      </p>
 
       {/* Analyze CTA */}
       {file && (
