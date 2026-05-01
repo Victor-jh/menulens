@@ -125,22 +125,39 @@ LIMIT {limit}
 
 
 async def _run_sparql(query: str) -> Optional[dict]:
+    """
+    GET against the LOD endpoint with one retry on transient failure.
+    Visit Korea SPARQL has periodic 404 windows — single retry catches the
+    common short-flap case. Total worst-case wait ≈ timeout × 2 + 250ms.
+    """
+    last_err: Optional[Exception] = None
     async with httpx.AsyncClient(
         timeout=_DEFAULT_TIMEOUT, follow_redirects=True
     ) as client:
-        resp = await client.get(
-            _SPARQL_ENDPOINT,
-            params={"query": query, "format": "json"},
-            headers={"Accept": "application/sparql-results+json"},
-        )
-        resp.raise_for_status()
-        ct = resp.headers.get("content-type", "")
-        if "json" not in ct.lower() and "sparql-results" not in ct.lower():
-            return None
-        try:
-            return resp.json()
-        except Exception:
-            return None
+        for attempt in (0, 1):
+            try:
+                resp = await client.get(
+                    _SPARQL_ENDPOINT,
+                    params={"query": query, "format": "json"},
+                    headers={"Accept": "application/sparql-results+json"},
+                )
+                resp.raise_for_status()
+                ct = resp.headers.get("content-type", "")
+                if "json" not in ct.lower() and "sparql-results" not in ct.lower():
+                    return None
+                try:
+                    return resp.json()
+                except Exception:
+                    return None
+            except httpx.HTTPError as e:
+                last_err = e
+                if attempt == 0:
+                    await asyncio.sleep(0.25)
+                    continue
+                raise
+    if last_err:
+        raise last_err
+    return None
 
 
 async def search_nearby_via_lod(
@@ -170,22 +187,33 @@ async def search_nearby_via_lod(
     sparql_limit = max(num_of_rows * 5, 30)
     query = _build_nearby_query(lat_min, lat_max, lon_min, lon_max, sparql_limit)
 
+    # Stale-on-error pattern: if SPARQL fails (Visit Korea has periodic 404
+    # outages), serve the last successful response of any age rather than
+    # leaving the section blank. Better an hour-old list than nothing.
+    def _serve_stale_or_error(reason: str) -> NearbyResult:
+        if cached:
+            stale_age = int(now - cached[0])
+            return NearbyResult(
+                status="ok",
+                items=cached[1].items,
+                total_count=cached[1].total_count,
+                message=f"⏳ 데이터 일시 지연 — {stale_age // 60}분 전 캐시 표시 중",
+                language_used=language,
+                radius_m=radius,
+            )
+        return NearbyResult(
+            status="upstream_error",
+            message=reason,
+            language_used=language,
+            radius_m=radius,
+        )
+
     try:
         payload = await _run_sparql(query)
     except httpx.HTTPError as e:
-        return NearbyResult(
-            status="upstream_error",
-            message=f"LOD SPARQL 호출 실패: {str(e)[:120]}",
-            language_used=language,
-            radius_m=radius,
-        )
+        return _serve_stale_or_error(f"LOD SPARQL 호출 실패: {str(e)[:120]}")
     if not payload:
-        return NearbyResult(
-            status="upstream_error",
-            message="LOD 응답 비어있음 (HTML?)",
-            language_used=language,
-            radius_m=radius,
-        )
+        return _serve_stale_or_error("LOD 응답 비어있음 (HTML?)")
 
     bindings = (payload.get("results", {}) or {}).get("bindings", [])
 

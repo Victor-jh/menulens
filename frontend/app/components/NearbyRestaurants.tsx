@@ -201,12 +201,14 @@ export function NearbyRestaurants({ language }: Props) {
   return (
     <section
       aria-label="Nearby restaurants"
-      className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex flex-col gap-3"
+      // Cream-on-cream container so v2 doesn't get a jarring white block in
+      // the middle of a Friendly cream backdrop. v1 reads as light-gray paper.
+      className="rounded-2xl border border-[rgba(31,26,20,0.08)] bg-[#FFFDF7] dark:border-zinc-800 dark:bg-zinc-900 p-4 flex flex-col gap-3"
     >
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-bold text-base flex items-center gap-1">
+        <h2 className="font-bold text-base flex items-center gap-1 text-zinc-900 dark:text-zinc-50">
           <span aria-hidden="true">📍</span>
-          <span>Nearby restaurants</span>
+          <span>주변 식당</span>
           <span className="text-xs font-normal text-zinc-500 ml-1">
             · {formatRadius(radius)}
           </span>
@@ -220,8 +222,8 @@ export function NearbyRestaurants({ language }: Props) {
               aria-pressed={r === radius}
               className={
                 r === radius
-                  ? "rounded-md px-2 py-1 bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 font-medium"
-                  : "rounded-md px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                  ? "rounded-md px-2 py-1 bg-[#3CA86A] text-white font-medium"
+                  : "rounded-md px-2 py-1 bg-[#F4ECDF] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
               }
             >
               {formatRadius(r)}
@@ -253,7 +255,27 @@ export function NearbyRestaurants({ language }: Props) {
         </button>
       </div>
 
-      {busy && <p className="text-xs text-zinc-500">불러오는 중…</p>}
+      {busy && (
+        <ul
+          aria-label="식당 불러오는 중"
+          className="-mx-4 px-4 flex gap-3 overflow-x-hidden"
+          role="list"
+        >
+          {[0, 1, 2].map((i) => (
+            <li
+              key={i}
+              className="snap-start shrink-0 w-56 rounded-xl border border-[rgba(31,26,20,0.08)] dark:border-zinc-800 overflow-hidden bg-[#FFF8EE] dark:bg-zinc-800/40 animate-pulse"
+            >
+              <div className="w-full h-28 bg-[rgba(31,26,20,0.06)] dark:bg-zinc-700/30" />
+              <div className="p-3 flex flex-col gap-2">
+                <div className="h-3 w-3/4 rounded bg-[rgba(31,26,20,0.08)] dark:bg-zinc-700/40" />
+                <div className="h-2 w-1/2 rounded bg-[rgba(31,26,20,0.06)] dark:bg-zinc-700/30" />
+                <div className="h-2 w-2/3 rounded bg-[rgba(31,26,20,0.06)] dark:bg-zinc-700/30" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {!busy && data?.status === "missing_key" && (
         <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800/60 p-3 text-xs text-zinc-600 dark:text-zinc-400">
