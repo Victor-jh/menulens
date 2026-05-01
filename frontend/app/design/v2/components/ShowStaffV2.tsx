@@ -125,7 +125,7 @@ export function ShowStaffV2({ item, profile, onBack }: Props) {
           style={{
             fontSize: 11,
             letterSpacing: 1,
-            color: FR.pickle,
+            color: FR.pickleText,
             fontWeight: 700,
             padding: "5px 10px",
             background: FR.pickleSoft,
@@ -190,7 +190,7 @@ export function ShowStaffV2({ item, profile, onBack }: Props) {
         >
           <span
             className="font-ko"
-            style={{ fontSize: 11, color: FR.fog, fontWeight: 600 }}
+            style={{ fontSize: 11, color: FR.muted, fontWeight: 600 }}
           >
             📝 직원분께
           </span>
@@ -201,7 +201,7 @@ export function ShowStaffV2({ item, profile, onBack }: Props) {
               borderRadius: 99,
               background: FR.pickleSoft,
               fontSize: 10,
-              color: FR.pickle,
+              color: FR.pickleText,
               fontWeight: 700,
             }}
           >
@@ -251,7 +251,7 @@ export function ShowStaffV2({ item, profile, onBack }: Props) {
             className="font-ko"
             style={{
               fontSize: 11,
-              color: FR.honey,
+              color: FR.honeyText,
               fontWeight: 700,
               marginBottom: 6,
             }}
@@ -291,7 +291,7 @@ export function ShowStaffV2({ item, profile, onBack }: Props) {
             borderTop: `1px dashed ${FR.border}`,
             fontFamily: '"JetBrains Mono", monospace',
             fontSize: 9,
-            color: FR.fog,
+            color: FR.muted,
             letterSpacing: 0.5,
           }}
         >
@@ -310,7 +310,7 @@ export function ShowStaffV2({ item, profile, onBack }: Props) {
             height: 56,
             borderRadius: 14,
             border: "none",
-            background: FR.pickle,
+            background: FR.pickleStrong,
             color: "#fff",
             fontSize: 15,
             fontWeight: 700,

@@ -74,7 +74,7 @@ export function OnboardingV2({
             fontFamily: '"JetBrains Mono", monospace',
             fontSize: 10,
             letterSpacing: 1.4,
-            color: FR.fog,
+            color: FR.muted,
           }}
         >
           01 / START
@@ -101,27 +101,27 @@ export function OnboardingV2({
           {profile.language === "ko" ? (
             <>
               한글 메뉴판,<br />
-              <span style={{ color: FR.pickle }}>대신 읽어드릴게요</span>
+              <span style={{ color: FR.pickleText }}>대신 읽어드릴게요</span>
             </>
           ) : profile.language === "ja" ? (
             <>
               ハングルのメニュー、<br />
-              <span style={{ color: FR.pickle }}>代わりに読みます</span>
+              <span style={{ color: FR.pickleText }}>代わりに読みます</span>
             </>
           ) : profile.language === "zh-Hans" ? (
             <>
               韩文菜单,<br />
-              <span style={{ color: FR.pickle }}>我帮您读</span>
+              <span style={{ color: FR.pickleText }}>我帮您读</span>
             </>
           ) : profile.language === "zh-Hant" ? (
             <>
               韓文菜單,<br />
-              <span style={{ color: FR.pickle }}>我幫您讀</span>
+              <span style={{ color: FR.pickleText }}>我幫您讀</span>
             </>
           ) : (
             <>
               Korean menu?<br />
-              <span style={{ color: FR.pickle }}>We&apos;ll read it for you</span>
+              <span style={{ color: FR.pickleText }}>We&apos;ll read it for you</span>
             </>
           )}
         </h1>
@@ -163,7 +163,7 @@ export function OnboardingV2({
           height: 54,
           borderRadius: 14,
           border: "none",
-          background: FR.pickle,
+          background: FR.pickleStrong,
           color: "#fff",
           fontSize: 15,
           fontWeight: 700,
@@ -207,7 +207,7 @@ export function OnboardingV2({
           className="mt-2 rounded-lg p-3 text-sm"
           style={{
             background: FR.blushSoft,
-            color: FR.blush,
+            color: FR.blushText,
             border: `1px solid ${FR.blush}40`,
           }}
         >
@@ -264,7 +264,7 @@ export function OnboardingV2({
               style={{
                 marginLeft: 6,
                 fontSize: 10,
-                background: FR.pickle,
+                background: FR.pickleStrong,
                 color: "#fff",
                 padding: "2px 6px",
                 borderRadius: 99,
@@ -297,7 +297,7 @@ export function OnboardingV2({
             placeItems: "center",
             fontSize: 16,
             fontWeight: 700,
-            color: FR.pickle,
+            color: FR.pickleText,
           }}
         >
           {persona.flag}
@@ -309,7 +309,7 @@ export function OnboardingV2({
           <div
             style={{
               fontSize: 11,
-              color: FR.fog,
+              color: FR.muted,
               marginTop: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -470,7 +470,7 @@ export function OnboardingV2({
         className="font-ko"
         style={{
           fontSize: 11,
-          color: FR.fog,
+          color: FR.muted,
           textAlign: "center",
           marginTop: 18,
         }}
@@ -533,7 +533,7 @@ function SignalRow({
         </div>
         <div
           className="font-ko"
-          style={{ fontSize: 11, color: FR.fog, marginTop: 1 }}
+          style={{ fontSize: 11, color: FR.muted, marginTop: 1 }}
         >
           {subKo}
         </div>

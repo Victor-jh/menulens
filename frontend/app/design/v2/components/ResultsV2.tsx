@@ -139,7 +139,7 @@ export function ResultsV2({
               className="font-ko mb-1"
               style={{
                 fontSize: 11,
-                color: FR.fog,
+                color: FR.muted,
                 fontFamily: '"JetBrains Mono", monospace',
                 letterSpacing: 1.2,
                 textTransform: "uppercase",
@@ -167,33 +167,33 @@ export function ResultsV2({
             {data.image_kind === "single_dish" && data.main_dish_ko ? (
               language === "ko" ? (
                 <>
-                  <span style={{ color: FR.pickle }}>{data.main_dish_ko}</span>,{" "}
+                  <span style={{ color: FR.pickleText }}>{data.main_dish_ko}</span>,{" "}
                   당신에게 {counts.green > 0 ? "안전" : counts.red > 0 ? "주의" : "확인 필요"}해요
                 </>
               ) : (
                 <>
-                  <span style={{ color: FR.pickle }}>{data.main_dish_ko}</span> looks{" "}
+                  <span style={{ color: FR.pickleText }}>{data.main_dish_ko}</span> looks{" "}
                   {counts.green > 0 ? "safe" : counts.red > 0 ? "risky" : "uncertain"} for you
                 </>
               )
             ) : language === "ko" ? (
               <>
                 메뉴 {counts.all}개 중에서{" "}
-                <span style={{ color: FR.pickle }}>{counts.green}개</span>는
+                <span style={{ color: FR.pickleText }}>{counts.green}개</span>는
                 바로 드실 수 있어요
               </>
             ) : (
               <>
-                <span style={{ color: FR.pickle }}>{counts.green}</span> of{" "}
+                <span style={{ color: FR.pickleText }}>{counts.green}</span> of{" "}
                 {counts.all} dishes are{" "}
-                <span style={{ color: FR.pickle }}>safe</span> for you
+                <span style={{ color: FR.pickleText }}>safe</span> for you
               </>
             )}
           </h2>
           <div
             style={{
               fontSize: 11,
-              color: FR.fog,
+              color: FR.muted,
               marginTop: 6,
               fontFamily: '"JetBrains Mono", monospace',
             }}
@@ -314,7 +314,7 @@ export function ResultsV2({
         >
           <div className="mx-auto max-w-md flex items-center gap-3">
             <div className="flex-1">
-              <div style={{ fontSize: 11, color: FR.fog }}>
+              <div style={{ fontSize: 11, color: FR.muted }}>
                 {totalQty} {language === "ko" ? "개" : "items"}
               </div>
               <div
@@ -332,7 +332,7 @@ export function ResultsV2({
               onClick={onCheckout}
               className="font-ko"
               style={{
-                background: FR.pickle,
+                background: FR.pickleStrong,
                 color: "#fff",
                 fontSize: 14,
                 fontWeight: 700,
@@ -405,7 +405,7 @@ function RestaurantsServingThisDish({
         className="font-ko"
         style={{
           fontSize: 10,
-          color: FR.fog,
+          color: FR.muted,
           fontFamily: '"JetBrains Mono", monospace',
           letterSpacing: 1,
           textTransform: "uppercase",
@@ -469,7 +469,7 @@ function RestaurantsServingThisDish({
       {!busy && data?.status === "no_results" && (
         <p
           className="font-ko"
-          style={{ fontSize: 12, color: FR.fog }}
+          style={{ fontSize: 12, color: FR.muted }}
         >
           {language === "ko"
             ? `'${dishKo}'을(를) 시그니처로 등록한 식당이 LOD에 없어요.`
@@ -525,7 +525,7 @@ function RestaurantsServingThisDish({
                     className="font-ko"
                     style={{
                       fontSize: 10,
-                      color: FR.pickle,
+                      color: FR.pickleText,
                       fontWeight: 600,
                     }}
                   >
@@ -536,7 +536,7 @@ function RestaurantsServingThisDish({
                   className="font-ko"
                   style={{
                     fontSize: 11,
-                    color: FR.fog,
+                    color: FR.muted,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -621,7 +621,7 @@ function TrustFooter({ language }: { language: string }) {
           fontSize: 10,
           letterSpacing: 1.5,
           textTransform: "uppercase",
-          color: FR.fog,
+          color: FR.muted,
         }}
       >
         {language === "ko" ? "근거 · Sources" : "Sources"}
@@ -659,7 +659,7 @@ function TrustFooter({ language }: { language: string }) {
                 style={{
                   fontFamily: '"JetBrains Mono", monospace',
                   fontSize: 9,
-                  color: FR.fog,
+                  color: FR.muted,
                   marginTop: 1,
                   letterSpacing: 0.2,
                 }}
@@ -673,7 +673,7 @@ function TrustFooter({ language }: { language: string }) {
       <div
         style={{
           fontSize: 10,
-          color: FR.fog,
+          color: FR.muted,
           marginTop: 4,
           paddingTop: 6,
           borderTop: `1px dashed ${FR.border}`,
@@ -882,7 +882,7 @@ function FriendlyCard({
           <div
             style={{
               fontSize: 11,
-              color: FR.fog,
+              color: FR.muted,
               marginTop: 2,
               fontStyle: "italic",
               overflow: "hidden",
@@ -1012,7 +1012,7 @@ function FriendlyEmpty({
       >
         {t.emptyTitle}
       </div>
-      <div style={{ fontSize: 12, color: FR.fog, marginTop: 6 }}>
+      <div style={{ fontSize: 12, color: FR.muted, marginTop: 6 }}>
         {t.emptySubtitle}
       </div>
       <button
@@ -1022,7 +1022,7 @@ function FriendlyEmpty({
         style={{
           padding: "11px 22px",
           borderRadius: 99,
-          background: FR.pickle,
+          background: FR.pickleStrong,
           color: "#fff",
           border: "none",
           fontSize: 13,

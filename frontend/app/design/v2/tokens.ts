@@ -3,17 +3,34 @@
 // from the claude.ai/design handoff. Use these in JS contexts that can't read
 // CSS variables (canvas, inline-only props), preferring Tailwind classes elsewhere.
 
+// Two-track palette (D11 a11y pass):
+//   *Visual* tokens (pickle, honey, blush, fog) — for backgrounds, signal
+//     dots, decorative chips. Reads brand-correct.
+//   *Text* tokens (pickleText, honeyText, blushText, mutedText) — darker
+//     variants that pass WCAG AA (≥4.5:1) on the cream background. Use
+//     these for any text rendered DIRECTLY on cream.
+//   *Strong* tokens (pickleStrong) — for CTA buttons where white sits on
+//     a colored fill (white on #3CA86A is only 3.00:1 = fail).
 export const FR = {
   cream: "#FFF8EE",
   cream2: "#FFFDF7",
   ink: "#1F1A14",
-  inkSoft: "#5C5347",
-  fog: "#9A9388",
-  pickle: "#3CA86A",
+  inkSoft: "#5C5347",          // 7.15:1 — AAA on cream
+  // muted: replaces former `fog` for *text* uses (fog kept as decorative bg)
+  muted: "#7A716A",            // 4.53:1 — AA on cream
+  fog: "#9A9388",              // visual only (dots, decorations) — fails AA
+  // green
+  pickle: "#3CA86A",           // visual: bg, dots
+  pickleStrong: "#226A3F",     // 6.56:1 white-on-pickle CTA bg
+  pickleText: "#1F6E40",       // 5.92:1 pickle-text on cream
   pickleSoft: "#E8F5EC",
-  honey: "#F2A93B",
+  // yellow
+  honey: "#F2A93B",            // visual: bg, dots
+  honeyText: "#7A4F11",        // 6.74:1 honey-text on cream
   honeySoft: "#FDF1DC",
-  blush: "#E66B5B",
+  // red
+  blush: "#E66B5B",            // visual: bg, dots
+  blushText: "#A03A2A",        // 6.36:1 blush-text on cream
   blushSoft: "#FCE4DF",
   border: "rgba(31,26,20,0.08)",
 } as const;

@@ -132,7 +132,7 @@ export function UploadV2({ onAnalyze, onBack, language }: Props) {
           style={{
             fontSize: 11,
             letterSpacing: 1,
-            color: FR.pickle,
+            color: FR.pickleText,
             fontWeight: 700,
             padding: "5px 10px",
             background: FR.pickleSoft,
@@ -203,7 +203,7 @@ export function UploadV2({ onAnalyze, onBack, language }: Props) {
             style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }}
           />
         ) : (
-          <div style={{ textAlign: "center", color: FR.fog }}>
+          <div style={{ textAlign: "center", color: FR.muted }}>
             <div style={{ fontSize: 36 }}>📐</div>
             <div className="font-ko" style={{ fontSize: 12, marginTop: 6 }}>
               {language === "ko"
@@ -277,7 +277,7 @@ export function UploadV2({ onAnalyze, onBack, language }: Props) {
           upload UX — no cognitive load, server picks the right pipeline. */}
       <p
         className="font-ko mt-3 text-center"
-        style={{ fontSize: 11, color: FR.fog }}
+        style={{ fontSize: 11, color: FR.muted }}
       >
         {language === "ko"
           ? "✨ 메뉴판이든 음식 사진이든 자동으로 분석해요"
@@ -324,7 +324,7 @@ export function UploadV2({ onAnalyze, onBack, language }: Props) {
           className="font-ko mt-3 rounded-xl p-3 text-sm"
           style={{
             background: FR.blushSoft,
-            color: FR.blush,
+            color: FR.blushText,
             border: `1px solid ${FR.blush}40`,
           }}
         >
@@ -425,13 +425,13 @@ function ParseOverlay({
           <>
             잠깐만요…
             <br />
-            <span style={{ color: FR.pickle }}>읽고 있어요</span>
+            <span style={{ color: FR.pickleText }}>읽고 있어요</span>
           </>
         ) : (
           <>
             One moment…
             <br />
-            <span style={{ color: FR.pickle }}>reading the menu</span>
+            <span style={{ color: FR.pickleText }}>reading the menu</span>
           </>
         )}
       </div>
@@ -494,7 +494,7 @@ function ParseOverlay({
       </div>
       <p
         className="font-ko mt-6 text-center"
-        style={{ fontSize: 11, color: FR.fog }}
+        style={{ fontSize: 11, color: FR.muted }}
       >
         {language === "ko"
           ? "~15초 (백엔드 깨우는 중이면 +30초)"
