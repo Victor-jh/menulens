@@ -262,10 +262,9 @@ export function NearbyRestaurants({ language }: Props) {
       )}
 
       {!busy && data?.status === "upstream_error" && (
-        <p className="text-xs text-red-600 dark:text-red-400">
-          관광 데이터 일시 오류
-          {data.message ? ` · ${data.message.slice(0, 80)}` : ""}
-        </p>
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 p-3 text-xs text-amber-800 dark:text-amber-200">
+          🛰️ 관광 데이터 (TourAPI) 일시 응답 지연. 잠시 후 자동 재시도됩니다.
+        </div>
       )}
 
       {!busy && data?.status === "no_results" && (
