@@ -1,168 +1,79 @@
 # 다음 Claude Code 세션 핸드오프
 
-> **이 문서는 5분 안에 다음 세션이 따라잡기 위한 단일 요약.**
-> 이거 + AGENTS.md + CONTEXT.md + DECISIONS.md + FAILURES.md + ROADMAP.md만 읽으면 OK.
+> 5분 안에 따라잡는 단일 요약. 이거 + CONTEXT.md + FAILURES.md + ROADMAP.md만 읽으면 OK.
 
-마지막 업데이트: 2026-04-26 (D9 — D8 전 작업 완료, 배포 단계 진입)
-
----
-
-## 🎯 본질 (한 줄)
-
-> 외국인이 한국 식당 앞에서 멈추는 30초의 망설임을 없애고, 그 망설임이 풀리는 경험을 다시 한국으로 돌려보내는 양방향 신뢰 인프라.
-
-3-3-3 폐회로: **DECIDE 3초** → **ORDER 3초** → **REVIEW 3초**.
+마지막 업데이트: **2026-05-02 (D12 end)**
 
 ---
 
 ## 📍 현재 위치
 
-- 날짜: D9 (2026-04-26 일)
-- **D7 Hard Gate**: ✅ PASS (2026-04-25 싸다김밥 77/80 메뉴, 36/36 conflict)
-- 제출 마감 (2026-05-06 수 16:00): **10일 남음**
+- 날짜: D12 (2026-05-02 토)
+- **제출 마감 (D16, 2026-05-06 수 16:00): 4일 남음**
+- 코드/배포: **사실상 동결.** v2 single path, 디자이너 P0/P1 audit 7건 모두 fix.
+- 자체 평가 ~8.7/10 (Usability 9.0 / A11y 8.0 / Readability 8.5 / Maintainability 8.5 / Test 7.0)
+- 사용자가 끝내야 할 것: 시연 영상, Reddit 글, HWP 변환, 제출.
 
-### 작동하는 것 (전체)
-- 백엔드 에이전트: menu_reader(dual-mode) / dish_profiler(RAG) / price_sentinel(cascade) / verdict(severity tree) / tts(Edge+Gemini) / dish_storyteller / reviews(enrich+roulette) / tour_lod(SPARQL) / tour_api(OpenAPI fallback)
-- 프론트 4 phase: onboarding → upload → results(NearbyRestaurants 포함) → order → review
-- `/reviews` thread 페이지 + 다국어 토글 + sentiment 필터
-- E2E PASS: 싸다김밥 77/80, OCR 95%, 42.2s, Pescatarian 39🟢/2🟡/36🔴, free_side 14건
-- LOD SPARQL nearby: 서울시청 5건 <800ms (대상해·마이시크릿덴·루이·광화문국밥·만족오향족발)
-- proposal.md 4 sections 완성 (D8 evidence-based 강화, 출처 7개)
-- pitch_deck.md D8 실측 데이터 반영, user_stories.md Yui 페르소나 정합
+## 🚀 라이브 stack
 
-### 배포 URL ✅ 양쪽 LIVE (2026-04-26)
-- **Frontend (Vercel)**: https://menulens-app.vercel.app
-  - 프로젝트명: `menulens` (victor-jhs-projects 스코프, prj_4nZEvi2UoQH7OHmE2pcwWtH6EHve)
-  - NEXT_PUBLIC_API_URL=https://menulens-backend.onrender.com 빌드 인젝션
-  - SSO Protection 해제 (공개 접근)
-- **Backend (Render)**: https://menulens-backend.onrender.com
-  - srv-d7mes7u7r5hc7385kuf0, Docker free tier (싱가포르)
-  - /health 200, /restaurants/nearby?source=lod prod 5건 PASS
-  - CORS preflight `https://menulens-app.vercel.app` exact match
-  - **참고**: free tier 15분 idle 후 sleep, cold start 30초
+- Frontend: https://menulens-app.vercel.app (deployment `menulens-7s692qma6`)
+- Backend: https://menulens-backend.onrender.com (commit `cd46bc5`)
+- GitHub: https://github.com/Victor-jh/menulens (origin/main `5db8b0b`)
+- Keep-alive: GH Actions cron `*/13 * * * *` (Render free tier sleep 방지)
+- 4 페르소나 prod 검증: Yui (D8 36/36) · Aisha (D9 KMF) · Chen (D11 chestnut/peanut) · Mike (TrustFooter)
+- 스모크 7/7 PASS on prod (`tests/test_smoke_e2e.py`)
 
-### 미완 (P0, 오늘~D14)
-1. 시연 영상 1분 30초 (D9, 4/29 일정)
-2. proposal.md — 시연 영상 YouTube 링크 추가 (D9 후), GitHub public 링크 (D14)
-3. HWP 변환 → PDF 제출 (D11~D13)
-4. 모바일 iPhone에서 menulens-app.vercel.app 접속해 실 메뉴판 E2E 한 번 더 확인 (선택)
+## 🛠 오늘 (D11+D12) 작업한 것 — terse
 
-### ✅ 완료된 것 (이전 세션)
-- D1~D8 전 코드 완료·검증·push (ea9b777까지 origin/main에 있음)
-- 18번 함정 기록 완료 (pescatarian ALLOWED_DIETS 누락 → 추가됨)
-- ADR-014 확정 (LOD SPARQL 우선, OpenAPI fallback)
+**D11 (커밋 다수)**
+- v2 디자인 적용 (Friendly/Pickle Plus 톤, mobile 4 화면)
+- `flag.ts` `trim()` 버그픽스 — `vercel env add`가 `"v2\n"` 저장해서 v1 fallback
+- NearbyRestaurants 4 perf fix: localStorage geo cache + parallel fire + 2.5s timeout + 수동 refresh
+- LOD outage resilience: 1-retry+250ms backoff + stale-cache
+- skeleton loading + 크림 테마 + 한글 헤더
+- Hermes router agent (Phase 1+2): image_classifier + parallel dispatch + dish_finder LOD bestMenu reverse
+- NOT-A-MENU rejection (backend system_instruction + frontend handler)
+- TrustFooter on ResultsV2 (KFPI/KCA/TourAPI/Gemini 4 source 인용)
+- WCAG AA color fix (4 text + pickleStrong CTA bg) + global `:focus-visible`
+- proposal compression: §3.3 → `docs/proposal_appendix.md` (185L), 본문 370→312L
+- E2E smoke 8 cases (`tests/test_smoke_e2e.py`)
+- ResultsV2 1036→451L (parts/ 분리: FriendlyCard, RestaurantsServingThisDish, TrustFooter)
+- 백엔드 agent docstrings (tour_api, dish_finder, dish_storyteller)
 
----
+**D12 (`cd46bc5`, `5db8b0b`)**
+- v1 컴포넌트 전부 삭제 — Onboarding 226L + Upload 230L + Results 1013L + flag.ts 19L = **1488L 제거**
+- MenuLensApp v1/v2 ternary 제거 → v2 single path
+- `_lod_shared.py` (121L) 신규 — tour_lod·dish_finder가 import (private import 안티패턴 해소)
+- 디자인 expert audit P0×3 + P1×4 모두 fix:
+  - P0-1: trigger_flags raw English leak ("Contains diet_hard_conflict")
+  - P0-2: free-side false positive (김치찌개·물냉면 substring "in" → flagged Free)
+  - P0-3: 짜장면 → "Stir-fried Glass Noodles · Japchae" (RAG nearest-neighbour to 잡채)
+  - P0-4: Free banchan + ✋ AVOID 색 모순
+  - P1: body cream bg, ShowStaff 13→15px, PillTab 44px touch
+- Prod canary 통과: jajang_trans=Black Bean Noodles, free_main_falsepos=0
 
-## 🗝 환경
+## 🧠 다음 세션이 처음 보면 알아야 할 것 (Top 5)
 
-### `.env` (backend/.env에 위치)
-```
-GEMINI_API_KEY=<set>
-ANTHROPIC_API_KEY=<set>
-SUPABASE_URL=https://lsvwboqkfmqgtcgqyuxw.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_*
-SUPABASE_SERVICE_KEY=sb_secret_*
-CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://172.30.1.53:3000,...
-# 추후:
-# THREADS_ACCESS_TOKEN=<for live posting>
-# THREADS_USER_ID=<numeric>
-# TOUR_API_SERVICE_KEY=<공공데이터포털 발급>
-```
+1. **v2 only.** v1 컴포넌트는 D12에 모두 삭제됐다. `flag.ts` 없음. `MenuLensApp`은 분기 없는 단일 경로. 되돌리지 말 것.
+2. **prod 배포는 동결.** 코드 추가 변경은 사용자 승인 필요. 남은 4일은 **사용자가** 영상·Reddit·HWP를 처리한다.
+3. **Hermes router agent** (`backend/agents/hermes_router.py`)가 image_classifier로 메뉴/요리/QR/NOT-A-MENU 분기 → parallel dispatch. dish_finder는 LOD bestMenu reverse lookup.
+4. **공유 LOD util은 `backend/agents/_lod_shared.py`.** tour_lod·dish_finder 양쪽이 여기서 import. `from .tour_lod import _internal` 같은 private import 금지 (D12 정리됨).
+5. **proposal 본문 312L + appendix 185L 분리.** D14 HWP 변환 시 본문만 5쪽 변환, appendix는 GitHub link.
 
-### Supabase 수동 SQL 실행 필요 (graceful degrade이라 안 해도 작동)
-- `backend/db/001_hansik_800.sql` ✅ 실행됨 (800건 적재)
-- `backend/db/002_tts_cache.sql` ⏳ 미실행 (캐시만 미작동)
-- `backend/db/003_reviews.sql` ⏳ 미실행 (리뷰 영구저장만 미작동)
+## 🚧 절대 반복 금지 함정 (FAILURES.md 25개 중 핵심 5개)
 
-### 서버 시작 (`.claude/launch.json` 등록됨)
-```
-preview_start name=backend-fastapi
-preview_start name=frontend-nextjs-prod    # 프로덕션
-# 또는 dev:
-preview_start name=frontend-nextjs
-```
+1. **iOS Safari `display:none` input click() 차단** → 항상 `<label>` + `sr-only`.
+2. **Phase 분리로 컴포넌트 unmount → state 유실** → busy overlay 패턴, "loading" phase 분리 금지.
+3. **`vercel env add`가 trailing newline 저장** (`"v2\n"`) → 모든 env value에 `.trim()` 적용. (D11 20번 함정)
+4. **dish_finder/tour_lod 간 private import** → 양쪽이 `_lod_shared.py`에서 import. (D12 정리)
+5. **RAG nearest-neighbour 오역** (짜장면→잡채) → dish_profiler에 명시적 alias map + threshold gate. (D12 P0-3)
 
----
+이전 세션에서 다룬 Hard Gate 77/80 OCR, LOD SPARQL canary 등은 **ROADMAP D8** 참조.
 
-## 🚧 절대 반복 금지 함정 (FAILURES.md 17개 중 핵심 5개)
+## 🆘 막혔을 때
 
-1. **iOS Safari `display:none` input click() 차단** → 항상 `<label>` 감싸기 패턴 + `sr-only`.
-2. **Phase 분리로 컴포넌트 unmount → 사진 state 유실** → busy overlay 패턴, phase에서 "loading" 분리하지 말 것.
-3. **Gemini TTS quota 도달** → ADR-010: Edge TTS primary, Gemini fallback. `edge-tts` 패키지 활용.
-4. **Supabase 새 키 포맷** → `supabase==2.29.0` 이상.
-5. **dish_profiler RLS 빈 결과** → backend는 `SUPABASE_SERVICE_KEY` 우선.
-
----
-
-## 🎬 다음 즉시 작업 (TourAPI 4.0)
-
-### 사용자가 먼저 해야 할 1단계
-- 공공데이터포털(data.go.kr) 로그인
-- "한국관광공사_국문 관광정보 서비스 GW" (15101578) 활용신청 ✅ 즉시 승인
-- 발급된 ServiceKey를 `backend/.env`에 `TOUR_API_SERVICE_KEY=...` 추가
-
-### Claude가 진행할 코드 작업
-1. `backend/agents/tour_api.py` — 신규 모듈
-   - `search_nearby_restaurants(lat, lon, radius=500)` → `areaBasedList2` API
-   - `restaurant_detail(content_id)` → `detailIntro2`
-   - 캐시: in-memory 1h LRU
-2. `backend/api/main.py` — `/restaurants/nearby` 엔드포인트
-3. `frontend/app/components/Results.tsx` — "📍 근처 식당" 섹션 추가 (Phase 1: mock 좌표 또는 사용자 GPS)
-4. 제안서 §3.1·§3.2 — TourAPI 활용 방안 강조
-
-### 검증 기준
-- 서울시청 (37.5665, 126.9780) 근처 식당 5개 반환
-- 각 식당에 "관광지 카테고리"·"주차 가능"·"영업시간" 메타
-- 응답 < 2초
-
----
-
-## 💼 사업 포지셔닝 (검토 결과, ADR-013)
-
-- **공모전 단계**: "도구 + 진흥원 협상권"
-- SNS 채널 본격 운영은 **보류** (5대 함정: cold-start·기존 경쟁자·수익<비용·1인 명예훼손 리스크 등)
-- review·threads·룰렛 코드는 유지 → "Phase 2 발전 방향"으로만 제안서에 언급
-- 시연 영상은 **decide → order 30초 폐회로 + 리뷰는 마지막 0.5초 cameo**
-
----
-
-## ⚠️ 미푸시 commits (사용자 명시 승인 필요)
-
-이 세션에서 만든 변경 commit 다수가 origin/main 미푸시 상태일 수 있음. 새 세션 시작 시 `git log origin/main..HEAD --oneline` 확인 후 사용자에게 푸시 승인 요청.
-
----
-
-## 🆘 막혔을 때 순서
-
-1. `CONTEXT.md` 다시 읽기 — 본질로 돌아가기
-2. `FAILURES.md` 검색 — 같은 함정인지 확인
-3. `DECISIONS.md` — 왜 이렇게 했는지 ADR 확인
-4. `docs/research/05_한식800선_정제스펙.md` — 데이터 모델 ground truth
-5. 백엔드 로그: `Bash` tail
-6. 프론트 prod 빌드: `cd frontend && npm run build`
-
----
-
-## 핵심 명령어
-
-```bash
-# 백엔드 헬스
-curl http://172.30.1.53:8000/health
-
-# E2E 합성 메뉴판
-curl -X POST http://172.30.1.53:8000/analyze \
-  -F "image=@tests/fixtures/synthetic_menu.png" \
-  -F "language=en" -F "allergies=pork"
-
-# 리뷰 enrichment 검증
-curl -X POST http://172.30.1.53:8000/reviews \
-  -H "Content-Type: application/json" \
-  -d '{"dish_name":"김치찌개","rating":5,"comment":"Good","language":"en"}'
-
-# FX 환산
-curl "http://172.30.1.53:8000/fx?krw=42000&language=ja"
-
-# 프론트 prod 재빌드
-cd frontend && npm run build && preview_start name=frontend-nextjs-prod
-```
+1. `CONTEXT.md` — 본질 복귀
+2. `FAILURES.md` (25 entries) — 같은 함정?
+3. `DECISIONS.md` — 왜 이렇게?
+4. Backend log: Render dashboard or `curl /health`
+5. Smoke 재실행: `python -m pytest tests/test_smoke_e2e.py -v` (BASE_URL=prod 가능)

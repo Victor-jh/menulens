@@ -1,7 +1,7 @@
 # MenuLens — Project Context
 
 > 모든 새 Claude 세션의 첫 참조 문서. 여기만 읽으면 즉시 온보딩된다.
-> 마지막 업데이트: **2026-04-25 (D5 시점, 코드 D6·D7 선행 완료)**
+> 마지막 업데이트: **2026-05-02 (D12 end, 코드 동결, 제출 4일 전)**
 
 ---
 
@@ -17,118 +17,109 @@
 ## 한 줄 요약
 **찰칵 한 번. 초록색만 주문하세요.** 방한 외국인을 위한 메뉴판 AI 어시스턴트.
 
-## 사업 포지셔닝 (2026-04-25 검토 결과)
-- 공모전 단계: **"도구 + 진흥원 협상권"으로 포지셔닝.** SNS 사업 모델 보류
-- 코드는 review·threads·룰렛 다 작동하나 **마케팅·시연 메시지는 도구 본질에 집중**
-- 평가자가 데모 만져보다 발견하면 발전성 가산점
+## 사업 포지셔닝
+- 공모전 단계: **"도구 + 진흥원 협상권"**, SNS 사업 모델 보류
+- 코드는 review·threads·룰렛 작동하나 **시연 메시지는 도구 본질에 집중**
 - 본업 진로: JH 진흥원 입사 후 internal tool로 발전 (B/C/E 시나리오)
 
 ## 핵심 명제
-- **문제**: 방한 외국인은 한국 식당 앞에서 4가지(메뉴 번역·가격 적정성·알레르기·주문법)를 동시에 몰라 등 돌린다
-- **해결**: 사진 1장 → AI 3개 에이전트 → 색깔 3종(🟢🟡🔴) 오버레이 + 탭-주문 TTS
+- **문제**: 방한 외국인은 식당 앞에서 4가지(메뉴 번역·가격 적정성·알레르기·주문법)를 동시에 몰라 등 돌린다
+- **해결**: 사진 1장 → AI 에이전트 → 색깔 3종(🟢🟡🔴) 오버레이 + 탭-주문 TTS
 - **근거**: 2026년, 멀티모달 AI·한식 공공DB·바가지 국가 어젠다가 처음 한 지점에서 만났다
 
 ## 타깃 공모전
 - 2026 관광데이터 활용 공모전 ① 웹·앱 개발 부문 (한국관광공사)
 - 접수 마감: **2026-05-06 (수) 16:00** (기한엄수)
-- TourAPI 필수 활용, 개인 참가(팀당 최대 5명), 국내 거주자
-- 심사 3단계: 예비심사(5월, 서류 적격) → 서비스 개발(5~9월, 교육·컨설팅) → 1차 심사(10월, 서면+기능 100점, 상위 5팀) → 최종심사(10월, PT 100점) → 시상식(11월)
-- 시상: 대상 1(1,000만) + 최우수 5×300만 + 우수 10×100만 + 장려 15×50만 + 특별상 (총 31팀, 4,250만원)
-- 공식 원본: `docs/submission/official/2026_공고문.pdf` · `docs/submission/official/제안서_양식_원본.hwp`
+- TourAPI 필수 활용, 개인 참가, 국내 거주자
+- 시상: 대상 1(1,000만) + 최우수 5×300만 + 우수 10×100만 + 장려 15×50만 (총 31팀, 4,250만원)
+- 공식 원본: `docs/submission/official/2026_공고문.pdf` · `제안서_양식_원본.hwp`
 
-## 3개 에이전트 아키텍처
-1. **Menu Reader** (Gemini 2.5 Flash Vision) — 메뉴판 이미지 → 메뉴명·가격 리스트 JSON
-2. **Dish Profiler** (Claude Sonnet 4.6 + pgvector RAG) — 메뉴 → 재료·알레르기·비건·할랄·문화 한 줄
-3. **Price Sentinel** (Rule + Claude) — 메뉴·가격 → 한국소비자원 참가격 8품목 대조 → 🟢🟡🔴 판정
+## 에이전트 아키텍처 (D11 Hermes 추가)
+1. **Hermes Router** (D11) — image_classifier로 메뉴/dish/QR/NOT-A-MENU 분기, parallel dispatch
+2. **Menu Reader** (Gemini 2.5 Flash Vision) — 메뉴판 → 메뉴명·가격 JSON
+3. **Dish Profiler** (Claude Sonnet 4.6 + pgvector RAG) — 메뉴 → 재료·알레르기·비건·할랄·문화
+4. **Dish Finder** (D11) — 단일 dish 사진 → LOD bestMenu reverse lookup
+5. **Price Sentinel** (Rule + Claude) — 한국소비자원 참가격 8품목 대조 → 🟢🟡🔴
+6. **Verdict / TTS / Storyteller / Reviews / Tour LOD / Tour API** — 보조
 
 ## 공공데이터 스택 (TourAPI 필수 + 5개 교차)
-- **TourAPI** (필수) — `areaBasedList2`, `detailIntro2`, 다국어 7개 서비스, LOD SPARQL (역대 수상작 최초 활용)
-- **한식진흥원 길라잡이 800선** (공공데이터포털 15129784) — 영·일·중 표준 번역 DB
-- **한국소비자원 참가격** (price.go.kr) — 서울 8개 외식 품목 월별 평균가
-- **식약처 식품영양성분DB** (15127578) — 알레르기 재료 보조 검증
-- **카카오 로컬 API** — 식당 위치·지역 보정
-- **공공데이터포털 15101578** — 한국관광공사 국문 관광정보 서비스
+- **TourAPI** — `areaBasedList2`, `detailIntro2`, LOD SPARQL (역대 수상작 최초)
+- **한식진흥원 길라잡이 800선** (KFPI 15129784) — 영·일·중 표준 번역
+- **한국소비자원 참가격** (KCA price.go.kr) — 외식 8품목 월별 평균
+- **식약처 식품영양성분DB** (15127578) — 알레르기 보조
+- **카카오 로컬 API** — 위치
+- **공공데이터포털 15101578** — 한국관광공사 국문
 
-## 기술 스택 (과잉 제거 버전)
+## 기술 스택
 | 층 | 선택 |
 |---|---|
-| Frontend | Next.js (웹앱) — 설치 장벽 0, 시연에 유리 |
-| Backend | FastAPI (Python 3.11) on Cloud Run |
+| Frontend | Next.js (Vercel) — v2 single path (D12 v1 삭제) |
+| Backend | FastAPI (Python 3.11) on Render Docker free tier |
 | DB | Supabase Postgres + pgvector |
-| AI | Claude Sonnet 4.6 + Gemini 2.5 Flash + OpenAI embedding |
-| TTS | Google Cloud TTS 무료 티어 |
-| 오케스트 | 직접 함수 체인 (LangGraph 과잉, 3노드면 asyncio.gather 충분) |
-| 배포 | Vercel (프론트) + Cloud Run (백엔드) |
+| AI | Claude Sonnet 4.6 + Gemini 2.5 Flash + Gemini embedding |
+| TTS | Edge TTS primary + Gemini fallback (ADR-010) |
+| 오케스트 | asyncio.gather + Hermes router |
 | 관측 | LangSmith 무료 + Sentry |
 
-## 비용 구조 (공모전 PoC 기간)
-- Gemini Flash 무료 티어 (1,000 RPD) → D1~D14 PoC 충분
-- Claude Partner Network 크레딧 활용
-- Supabase 무료 티어 (500MB)
-- Vercel Hobby 무료
-- **예상 총 지출: $0 ~ 최대 5만원**
+## 비용 구조
+- Gemini Flash 무료 티어 + Claude Partner Network 크레딧 + Supabase 무료 + Vercel Hobby + Render free
+- **총 지출 $0 ~ 5만원**
 
 ## 타임라인 현재 위치
-- **현재**: D5 (2026-04-25 토) — 코드 D6·D7 핵심 부분 선행 완료
-- D3·D4·D5·D6 코드 모두 작동 검증됨 (curl + Chrome MCP E2E PASS)
-- D7 코드 거의 완료, 실 메뉴판 모바일 실측만 남음
-- **Hard Gate**: D7 (2026-04-27 일) — **2일 남음**
-- **제출 마감**: D16 (2026-05-06 수) 16:00 — **11일 남음**
+- **현재**: D12 (2026-05-02 토) — **코드 동결**
+- D7 Hard Gate ✅ PASS (싸다김밥 77/80, 36/36 conflict — ROADMAP D8 참조)
+- D9 양쪽 stack LIVE (Vercel + Render)
+- D11: v2 디자인 적용, Hermes router, perf fix, NearbyRestaurants 안정화, A11y AA, smoke 8건, ResultsV2 1036→451L
+- D12: v1 1488L 삭제 (single path), `_lod_shared.py` 분리, 디자이너 audit P0×3+P1×4 fix, prod canary 통과
+- **제출 마감 (D16, 2026-05-06 수 16:00): 4일 남음**
 
-### 🔥 D7~D8 시점 우선순위 (P0)
-1. ✅ **TourAPI 4.0 LOD SPARQL 연동 (ADR-014)** — 키 미발급 상태에서도 즉시 작동. `/restaurants/nearby?source=auto` LOD 1순위, OpenAPI 키 들어오면 fallback. 서울시청 canary 5건 PASS (대상해/마이시크릿덴/루이/광화문국밥/만족오향족발). 외국인 시연용 다국어 라벨은 OpenAPI 키 발급 후 보강.
-2. ✅ **D7 Hard Gate PASS (실 메뉴판)** — 싸다김밥 연신내역점 (468×832 메신저 압축본)으로 77개 메뉴 추출, 가격 77/77, OCR 95%, 42s, Pescatarian 페르소나 39🟢/2🟡/36🔴, free_side 14개 정확. 채팅 첨부 사진과 다운로드 파일 오인하는 19번째 함정 발생 후 정정. force_mode=text + system_instruction + Gemini Flash 조합이 작동.
-3. Vercel + Render 실 배포 (사용자 OAuth 1회)
-4. 시연 영상 1분 30초 시나리오 + 1차 촬영 (D9) — Pescatarian 분식집 시나리오 직행 가능
-5. 제안서 1차 초안 5쪽 (D10) — §3 데이터 활용에 OpenAPI(REST) + LOD(SPARQL) 이중 활용 강조
+### 🔥 D12 시점 우선순위 (사용자 주도)
+1. **시연 영상 1분 30초 촬영** — 외국인 cameo + 식당 location 섭외 (D12~D13)
+2. **Reddit r/koreatravel 글 게시** — draft `docs/distribution/reddit_koreatravel_post.md`
+3. **HWP 변환** (D14) — 본문 5쪽 + appendix는 GitHub link
+4. **D16 16:00 제출**
 
-### ✅ 완료된 P0 (이 세션에서)
-- ADR-007: 김치찌개 12,000원 → 🔴 (140%) 정정
-- ADR-008: Gemini gemini-embedding-001 (768d) — OpenAI 회피
-- ADR-009: Gemini TTS (Phase 1) → ADR-010: Edge TTS primary + Gemini fallback (quota 무제한)
-- 백엔드 보안: CORS env 화이트리스트, /health key 누출 제거, items/TTS cap
-- Frontend: viewport, 색맹 라벨(✓!✕), pescatarian, sort toggle, dual-mode OCR
-- Storyteller: cultural context + regional variants + visual photo guess
-- 재료 카드 그리드 + free-side 자동 인식
-- 장바구니 + 매장/포장 + 한국어 TTS + 외화 환산(frankfurter ECB)
-- 리뷰 + 룰렛 + Threads-ready 다국어 + Reviews thread 페이지
-- Toss 디자인: 무채색 카드 + 좌측 컬러 stripe + 2x2 fact grid + 가로 스크롤 태그
+## 추가 D11+D12 변경 (코드)
+- **Hermes router** (`backend/agents/hermes_router.py`) — image_classifier + parallel dispatch + dish_finder LOD reverse
+- **`_lod_shared.py`** (D12 121L) — tour_lod·dish_finder가 공유 (private import 안티패턴 해소)
+- **v1 전체 삭제** (D12 1488L) — Onboarding/Upload/Results/flag.ts, MenuLensApp ternary 제거 → single path
+- **ResultsV2 분리** (D11 1036→451L) — `parts/FriendlyCard`, `parts/RestaurantsServingThisDish`, `parts/TrustFooter`
+- **NearbyRestaurants 안정화** (D11) — geo cache + parallel + 2.5s timeout + LOD 1-retry stale-cache
+- **proposal compression** (D11) — 본문 370→312L, §3.3 → `docs/proposal_appendix.md` 185L
 
-## 핵심 금지 사항 (확산 방지)
-- ❌ 에이전트 추가 (3개로 고정)
+## 자체 평가 (D12)
+| 지표 | 점수 | 근거 |
+|---|---|---|
+| Usability | 9.0 | v2 4 화면, NOT-A-MENU 처리, skeleton |
+| Accessibility | 8.0 | WCAG AA 색 + 44px touch + `:focus-visible` |
+| Code readability | 8.5 | single path, dead code 0 |
+| Maintainability | 8.5 | sub-components + `_lod_shared` |
+| Test reliability | 7.0 | smoke 8건 + GH Actions cron |
+| **가중 평균** | **~8.7** | |
+
+## 핵심 금지 사항
+- ❌ 에이전트 7개 원안 재검토 (현 6개로 충분)
+- ❌ v1 컴포넌트 복구 (D12 삭제됨)
 - ❌ 실시간 AR 라이브 모드 (Phase 2)
-- ❌ K-Scene, Taste DNA, Voice Bridge 등 추가 기능
-- ❌ 부산 RTO 특별상 (현장 답사 불가)
-- ❌ Neo4j, LangGraph 이중화, Flutter 등 오버엔지니어링
-- ❌ 7개 에이전트 원안 재검토
-
-## 의사결정 맥락
-과거 대화 세션에서:
-1. 초기안(KOMPASS 7-agent) → 과잉 판정 → MenuLens(3-agent)로 축소
-2. Papago 정면 대결 불가 → "번역 + 4개 레이어(공식표준·가격·알레르기·문화)"로 포지셔닝
-3. 라이브 AR 모드 → 2주 PoC 무리 → "찰칵 한 번 + 색깔 3종" 확정
-4. 수상 목적 → 포트폴리오·학습 목적으로 재정의
+- ❌ Neo4j, LangGraph 이중화, Flutter
+- ❌ env value `.trim()` 누락 (FAILURES 20번)
+- ❌ private cross-agent import (`_lod_shared.py` 사용)
 
 ## 참조 문서
+- `docs/SESSION_HANDOFF.md` — 다음 세션 핸드오프 (terse)
 - `ROADMAP.md` — D1~D16 일일 체크리스트
-- `DECISIONS.md` — 의사결정 로그 (ADR-001~006)
-- `FAILURES.md` — 실패·시행착오 기록
-- `AGENTS.md` — Claude Code용 마스터 지시서 (코드 작업 시 필독)
-- `docs/proposal.md` — 공모전 제안서 5p 본문
-- `docs/user_stories.md` — 페르소나 4인 (Chen·Yui·Malik·John)
-- `docs/pitch_deck.md` — 시연 영상 1분 30초 샷리스트
-- `docs/review_proposal_scorecard.md` — 제안서 자체 채점 (D3: 77/100 baseline)
-- `docs/submission/checklist.md` — 공모전 접수 체크리스트
-- `docs/submission/hwp_conversion_plan.md` — D11 MD→PDF/HWP 변환 플랜
-- `docs/research/00_Cowork_온보딩.md` — 대화 이력 요약 (신규 세션 첫 읽기)
-- `docs/research/01_다각도_심층검토.md` — 30개 시선 비판·지지·전문가 검토
-- `docs/research/02_기술검증.md` — 9개 기술 주장 검증 (6통과·2재설계·1폐기)
-- `docs/research/03_시장_배경_리서치.md` — 2,000만 방한·바가지 사태 데이터
-- `docs/research/04_공공데이터_접근법.md` — 6개 공공 API 실무 접근법
-- `docs/research/05_한식800선_정제스펙.md` — Supabase 적재 스키마·알레르기 매핑 (v2, dry-run 검증 통과)
-- `docs/research/06_샘플메뉴판_시연용.md` — D9 촬영용 A3 메뉴판 레이아웃·메뉴 8개 설계
+- `DECISIONS.md` — 의사결정 로그 (ADR-001~014+)
+- `FAILURES.md` — 실패 기록 (현 25개)
+- `AGENTS.md` — Claude Code 마스터 지시서
+- `docs/proposal.md` — 본문 312L (D14 HWP 변환 대상)
+- `docs/proposal_appendix.md` — §3.3 details 185L (GitHub link)
+- `docs/pitch_deck.md` — 시연 영상 90s 샷리스트 (Hermes Phase 2 포함)
+- `docs/user_stories.md` — 페르소나 4인 (Yui·Aisha·Chen·Mike)
+- `docs/distribution/reddit_koreatravel_post.md` — Reddit draft
+- `tests/test_smoke_e2e.py` — prod smoke 8 cases
+- `docs/research/05_한식800선_정제스펙.md` — 데이터 모델 ground truth
 
 ## 응답 스타일
-- userPreferences 준수 (심층·체계적·길이 제한 없음)
+- userPreferences 준수 (심층·체계적)
 - 심사 100점 배점(기획력 30 + 완성도 30 + 데이터 20 + 발전성 20) 항상 염두
 - "확산적 사고" 패턴 감지 시 즉시 경고

@@ -17,6 +17,97 @@
 
 ---
 
+## 2026-05-02 (D12) · 25번째 함정 — Tailwind v4 token CSS var의 body bg 비적용 의심 (오진단)
+
+**상황**: D12 a11y polish에서 `body { background: var(--color-cream, #FFF8EE) }` 적용 후 모바일 스크린샷에서 max-w-md 컨테이너 밖 영역이 흰색으로 보였다. "Tailwind v4 @theme inline 토큰이 body element에 propagate 안 되나?" 의심하고 직접 hex로 fallback 작업 시작.
+
+**진실**: `getComputedStyle(document.body).backgroundColor`로 검사하니 정상 `rgb(255,248,238)` = `#FFF8EE` 적용됨. body height 1746px 전체에 cream. Chromium headless 스크린샷이 viewport 외 영역을 white로 채운 capture artifact였을 뿐. hex fallback도 동작 동일했을 거라 무해.
+
+**교훈**:
+- 시각 스크린샷보다 `getComputedStyle()` 직접 측정이 신뢰도 높음
+- Chromium headless는 viewport 외 페이지 영역을 white로 capture할 수 있음 (특히 document height >> viewport height일 때)
+- "X 안 보임 → X 작동 안 함" 추론 전에 1회 computed style 검증
+
+---
+
+## 2026-05-02 (D12) · 24번째 함정 — 짜장면 → "Stir-fried Glass Noodles · Japchae" 임베딩 nearest neighbour 오번역
+
+**상황**: 디자인 전문가 audit 중 ResultsV2 카드에서 짜장면이 "Stir-fried Glass Noodles and Vegetables · Japchae"로 표시. 잡채와 짜장면이 서로 다른 음식인데도 dish_profiler가 잡채로 매칭.
+
+**원인**: `한식 길라잡이 800선` 데이터셋에 中華料理 (Sino-Korean cuisine) 항목 부재. 짜장면 query가 768d 임베딩 공간에서 가장 가까운 entry로 잡채 (둘 다 noodle 카테고리, ingredient 분포 유사) 매칭. similarity ~0.6대로 `MATCH_HIGH=0.65` 미만이라 `source=hybrid` 라벨이 붙었지만 응답 데이터(name_en, desc, ingredients) 자체는 잡채 데이터 사용.
+
+**수정**:
+- `_DISH_OVERRIDES` 매뉴얼 매핑 5건 추가 (짜장면·자장면·짬뽕·탕수육·군만두)
+- `profile_dish()` 진입에서 RAG보다 우선
+- 향후 한식 외 dish 발견 시 동일 패턴 적용 (권장: 떡볶이 같은 후식·서민 메뉴는 800선에 있음)
+
+**교훈**:
+- 임베딩 검색은 nearest neighbour라서 "데이터셋 안에 정답이 없으면" 비슷한 답을 자신감 있게 반환
+- 외부 도메인 (中華·和食·洋食) 항목은 800선에 없음 — manual override 필요
+- similarity 점수만 신뢰하지 말고 source 도메인 자체를 검증
+
+---
+
+## 2026-05-02 (D12) · 23번째 함정 — 김치찌개 free_side 오타깃팅 (substring `in` match)
+
+**상황**: 디자인 전문가가 ResultsV2에서 김치찌개·물냉면이 ✋ AVOID 색깔에 "Free side dish — comes without ordering!" 메시지로 표시되는 모순 발견. 두 메뉴 모두 가격이 명시된 메인 dish인데 free 표기.
+
+**원인**: backend `menu_reader._annotate_free_sides()`가 `KOREAN_FREE_SIDES_KEYWORDS` 사전과 `if keyword in normalized` substring 매칭. "김치"가 "김치찌개"의 부분 문자열로 매칭, "물"이 "물냉면"의 부분 문자열로 매칭. 둘 다 free_side_likely=True 설정.
+
+**수정**:
+- `_MAIN_DISH_SUFFIXES` 가드: "찌개·탕·국밥·면·비빔밥·…" 으로 끝나는 이름은 절대 free 아님
+- price > 0 가드: 가격 있는 dish는 절대 free 아님 (사이드는 가격 0/null)
+- substring `in` 매칭은 그대로 두되 위 두 가드로 감쌈
+
+**교훈**:
+- 한국어 부분 문자열 매칭은 위험: 단어 경계 없으면 "김치찌개" ⊃ "김치", "물냉면" ⊃ "물"
+- 의미적 가드 (suffix·price)로 휴리스틱 가짜양성 차단
+- "free side dish + ✋ AVOID 메시지 모순"은 사용자 신뢰 즉시 손상 — visual contradiction 카드는 P0
+
+---
+
+## 2026-05-02 (D12) · 22번째 함정 — backend trigger_flag 토큰이 영문 UI에 그대로 누출
+
+**상황**: 디자인 전문가가 카드에 "Contains diet_hard_conflict" / "Contains price_suspect" 영문 raw 토큰 표시 발견. 평가자 입장: "이게 뭔 영어야?" → 신뢰 즉시 손상.
+
+**원인**: `verdict.py`가 두 종류의 출력을 emit:
+- `reasons` — 사람 읽기용 텍스트 ("Contains pork", "+40% above benchmark")
+- `trigger_flags` — 카테고리 플래그 ("diet_hard_conflict", "price_suspect")
+
+프론트 FriendlyCard의 `msgRedWithTriggers(triggers)` i18n 함수가 trigger_flags를 받아 `${flags.join(", ")} 들어 있어요` 그대로 영문 출력 → 카테고리 플래그가 영문 UI 라벨로 노출.
+
+**수정**:
+- FriendlyCard에서 `item.reasonsText` 우선 사용 (이미 친화 텍스트)
+- `triggers`는 logic 용도만 (button 가시성·카운트), UI 메시지에 절대 직접 통과 X
+- triggers fall-through 시 `msgRedNoTriggers` 일반화 메시지
+
+**교훈**:
+- 백엔드가 두 트랙으로 emit (machine-readable categorical + human-readable string) 시 프론트는 무조건 후자 사용
+- 디자인 전문가의 시각 audit이 자동 테스트가 못 잡는 i18n 누출 발견 — 정기적 외부 audit 필요
+- 카테고리 플래그를 UI 라벨로 쓸 때는 i18n 매퍼를 거쳐야 (이번 수정의 sustainable 패턴)
+
+---
+
+## 2026-05-02 (D12) · 21번째 함정 — Vercel `vercel env add` 가 stdin newline까지 저장
+
+**상황**: D11 Vercel 첫 배포 후 prod URL이 v1 디자인 렌더. 30분 디버깅 끝에 `vercel env pull`로 검사하니 `NEXT_PUBLIC_UI_VERSION="v2\n"` (literal newline 포함). flag.ts의 `VAL === "v2"` 비교 false → useUiV2() false → v1 렌더.
+
+**원인**: `echo "v2" | vercel env add NEXT_PUBLIC_UI_VERSION production` — `echo`가 자동으로 trailing `\n` 추가, `vercel env add`가 stdin 전체를 raw 저장.
+
+**수정**:
+- `printf 'v2' | vercel env add ...` (no newline)
+- flag.ts: `(VAL ?? "").trim().toLowerCase() === "v2"` 방어
+- 두 트랙 (env 정정 + 코드 trim) 모두 적용
+
+**교훈**:
+- shell `echo`는 항상 `\n` append (POSIX echo behavior). `printf` 또는 `echo -n` 사용
+- 외부 입력은 항상 trim — 환경변수도 외부 입력
+- v1/v2 dual-track인데 prod에서 v1이 보이면 첫 의심은 env 정확성
+
+(이후 D12에 v1 components 자체 삭제로 dual-track 제거됨 — `1488 lines` deleted, flag도 dead code로 삭제)
+
+---
+
 ## 2026-04-26 (D9) · 20번째 함정 — Render Docker 빌드 5초 fail, GitHub deployments API로 진단
 
 **상황**: 사용자가 Vercel + Render 배포 "완료" 보고. Vercel은 정상이지만 Render `https://menulens-backend.onrender.com/health`가 처음엔 404 (`x-render-routing: no-server`), 이후 사용자 manual deploy 후엔 응답 행(60s timeout). 빌드 진행 중인 줄 알고 5분 폴링 → 진전 없음.

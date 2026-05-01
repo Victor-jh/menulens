@@ -114,9 +114,11 @@
 - 메뉴판 위에 색깔 박스 애니메이션 (각 박스 0.3초 간격으로 페이드인)
 - 각 메뉴 옆 가격과 색깔 설명이 1초씩 하이라이트
 
-**시연 페르소나**: Yui (일본 30대 여성, Pescatarian — 어식주의자)
+**시연 페르소나**: Yui (일본 30대 여성, Pescatarian — 어식주의자) — Use Case 1·2 모두 동일 페르소나 일관 유지 (Aisha/Halal 변형 ❌)
 **장소**: 서울 연신내역 분식점 "싸다김밥" — 분식 메뉴 80개 stress 케이스
 **촬영 데이터 출처**: 2026-04-25 D8 PoC 실측 결과 (§7 표 인용)
+**입력 이미지**: `tests/fixtures/synthetic_menu.png` (D12 합성본 — 된장찌개·김치찌개·짜장면·잔치국수 + 단무지/맑은국 무료 6항목)
+**입력 데모 URL**: https://menulens-app.vercel.app (▶ 샘플 메뉴판 체험 1탭) · **온스크린**: §8.1 표 참조 · **D12 P0 신뢰 마커**: §10 참조
 
 샘플 결과 (실측 데이터 — `tests/fixtures/real_menu_v2.jpg` 기반):
 | 메뉴 | 가격 | 색깔 | 부가설명 (영/한 병기, 1초씩) |
@@ -402,4 +404,73 @@ SFX: Pixabay Free Sound Effects
 - [0:30~0:45] 결과 화면 4건은 위 표에서 발췌 → 영상 신뢰도 ↑
 - [1:06~1:23] LOD SPARQL 카드에 nearby 5건(대상해 214m / 사조참치 / 루이 / 광화문국밥 / 만족오향족발)을 0.5초 시각화 추가 가능
 - [1:23~1:30] CTA 직전 D8 측정 화면 캡처 0.5초 컷이 evidence 한 단계 더 단단화
+
+---
+
+## 8. D12 Live Demo Cast — 화면에 무엇이 잡히는가
+
+### 8.1 [0:30~0:42] Use Case 1 — Menu Board (12s)
+
+| 초 | 액션 | 화면 | 핵심 |
+|---|---|---|---|
+| 0:30~0:32 | https://menulens-app.vercel.app 첫 화면 → ▶ **샘플 메뉴판 체험** 1탭 | Hero "한글 메뉴판, 대신 읽어드릴게요" → 진한 녹색 CTA | "Sample 1-click — no upload friction" |
+| 0:32~0:34 | Onboarding skip (D12 단축, 1탭) → 분석 spinner | "Pescatarian" 프리셋 자동 선택, 12초 cap | spinner 12s real-time 보여줌 (가공 X) |
+| 0:34~0:42 | ResultsV2 모바일 카드 6장 페이드인 | **된장찌개 🟢** ₩8,000 "Soybean paste · safe" + **김치찌개 🔴** ₩7,500 "Not pescatarian — contains pork" + **짜장면 🔴** ₩6,000 "Black Bean Noodles · Jajangmyeon · contains pork" + **잔치국수 🟢** ₩7,000 + **단무지/맑은국 Free** (✋ 빨강 X, 중립 회색) | D12 P0 fix 4건이 동시에 시각적으로 증명됨 |
+
+**카메라 포커스 컷**: 김치찌개 카드의 "Not pescatarian — contains pork" 영문 메시지에 1초 zoom (raw `diet_hard_conflict` 토큰 노출 ❌). 짜장면 카드의 "Black Bean Noodles · Jajangmyeon" subtitle에 1초 zoom (구 버전 "Japchae" 오역 ❌).
+
+### 8.2 [0:42~0:54] Use Case 2 — Food Photo → Restaurant via Hermes Phase 2 (12s)
+
+| 초 | 액션 | 화면 | LOD live 시 | LOD outage 시 (Plan B) |
+|---|---|---|---|---|
+| 0:42~0:46 | iPhone 인스타 mock 스크롤 → 비빔밥 사진 1장에서 멈춤 → "Save to Photos" | 인스타 피드 mock | 동일 | 동일 |
+| 0:46~0:50 | MenuLens 앱 → 갤러리 업로드 → "분석 중" spinner | Split-screen 가능 | 동일 | 동일 |
+| 0:50~0:54 | ResultsV2 헤더 "비빔밥, 안전해요" + Phase 2 **이 음식 파는 식당** carousel | 식당 카드 5장 (사진 + cat3 + 거리, 가로 스크롤) | "🛰️ 일시 응답 지연 — 잠시 후 다시" 친화 메시지 (LOD upstream_error) — **honesty marker로 그대로 사용 OK** |
+
+**Plan B 결정 트리** (촬영 D-day): §9 step 4 호출 → `status: "ok"` & items ≥ 3 → LIVE 촬영. outage면 cache prime 1회 후 30초 대기 재시도. 여전히 outage면 (A) "honesty marker"로 그대로 촬영 (외부 LOD graceful degrade = production 진실성) 또는 (B) 사전 stash B-roll mock 식당 카드 5장 PNG를 CapCut 편집 단계에서 overlay 합성.
+
+### 8.3 [0:54~1:06] Why It Matters (12s)
+검은 배경 + 카드 flip 3장: **20M tourists** / **41.8% mistranslation** / **₩300M Gwangjang Market**. 각 카드 4s hold + 1s cross-fade.
+
+### 8.4 [1:06~1:23] Data Stack + Hermes (17s)
+0~5s 6개 공공데이터 로고 그리드 (TourAPI 중앙) → 5~10s ASCII Hermes router 다이어그램 (Classifier → menu_processor / dish_finder) → 10~17s LOD bestMenu invert 애니메이션 (`?s ktop:bestMenu ?dish` SPARQL 오버레이) + **마지막 1초 박힘 자막**: "역대 13회 0건 → MenuLens 14회 first-mover".
+
+### 8.5 [1:23~1:30] Closing (7s)
+로고 + QR + URL `menulens-app.vercel.app` + **"One tap. Order what's green. / 찰칵 한 번. 초록색만 주문하세요."** BGM 2s fade-out + 1s 무음.
+
+## 9. Pre-shoot 5-min smoke (D12 day-of)
+
+촬영 30분 전 터미널에서 순차 실행. 8/8 PASS = 녹화 green light. 전 단계는 별도 표준 문서 `docs/demo_smoke_test.md` 참조.
+
+```bash
+# 1. Wake the backend (Render free tier may be sleeping)
+curl -s --max-time 30 https://menulens-backend.onrender.com/health
+
+# 2. Prime LOD cache for Phase 2 (so dish_finder serves data even during recording)
+curl -s --max-time 30 'https://menulens-backend.onrender.com/restaurants/by_dish?dish_ko=비빔밥&language=en&limit=8' > /tmp/lod_cache_check.json
+cat /tmp/lod_cache_check.json | python3 -c "import json,sys; d=json.load(sys.stdin); print('LOD status:', d.get('status'), 'items:', len(d.get('items',[])))"
+
+# 3. Verify all 8 E2E smoke tests
+MENULENS_API=https://menulens-backend.onrender.com pytest tests/test_smoke_e2e.py -v -k "not warm"
+
+# 4. iPhone Safari sanity: open https://menulens-app.vercel.app
+#    Confirm: 한글 메뉴판 hero, ▶ 샘플 메뉴판 체험 button, no "v1" old design
+
+# 5. instagram mock prepared on phone (saved 비빔밥 photo in album)
+```
+
+PASS 기준: step1 `200 OK` · step2 `status: ok` & items ≥ 3 · step3 8/8 green · step4 v2 디자인 확인 · step5 사진 album 존재. 실패시 `docs/demo_smoke_test.md` 비상 절차.
+
+## 10. D12 P0 fixes that affect the recording
+
+녹화에 직접 영향이 가는 D12 P0 수정 4건. 카메라가 잡는 픽셀에 변화가 있고, 평가자가 "production-grade quality" 판단할 단서가 된다.
+
+| Fix | Before (D11) | After (D12) | 녹화 위치 |
+|---|---|---|---|
+| 짜장면 매핑 | "Japchae" (오역) | "Black Bean Noodles · Jajangmyeon" | [0:34~0:42] 카드 #3 |
+| 김치찌개 free flag | Free 표시 (false positive) | ₩7,500 가격 표기 + 🔴 pork 차단 | [0:34~0:42] 카드 #2 |
+| Diet conflict i18n | `Contains diet_hard_conflict` raw token | "Not pescatarian — contains pork" 친화 메시지 | [0:34~0:42] 카드 #2 zoom |
+| Free side color | ✋ AVOID 빨강 (충돌) | 중립 회색/녹색 (effectiveColor override) | [0:34~0:42] 카드 #5·#6 |
+
+**촬영 trust narrative**: 4건은 단순 "기능 작동"이 아니라 외국인 사용자가 실제로 신뢰할 수 있는 메시지·색·가격이다. 4컷이 모두 잡히면 심사위원에게 "PoC가 아닌 ship된 product" 인상이 박힌다.
 

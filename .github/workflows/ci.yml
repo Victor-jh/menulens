@@ -1,0 +1,82 @@
+name: CI
+
+# Runs on every push to main + every PR. Skip the smoke E2E suite — it
+# requires a live backend (see tests/test_smoke_e2e.py header). The keep-alive
+# workflow handles prod liveness; this workflow handles correctness on changes.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs on the same ref when a new push lands. Saves CI minutes
+# and surfaces results from the latest commit only (avoids stale red checks
+# blocking judging during contest week).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # Match the Dockerfile / Render runtime exactly. Adding 3.12 here would
+        # imply we test on it; we don't, so don't claim to.
+        python-version: ["3.13"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run pytest (unit only — skip E2E that needs live backend)
+        # --ignore only the smoke E2E file (it requires a live backend at
+        # MENULENS_API and is exercised by the keep-alive cron + manual
+        # smoke runs). All other tests, including price_sentinel (D12 fix:
+        # legacy `match_benchmark` import wrapped via _exact_or_alias_match
+        # adapter), MUST pass. 28/28 expected.
+        run: |
+          pytest tests/ -v --tb=short \
+            --ignore=tests/test_smoke_e2e.py
+
+  frontend-build:
+    name: Frontend (next build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Next.js app
+        working-directory: frontend
+        # Build picks up real env vars at runtime via Vercel; here we just
+        # verify the bundle compiles. NEXT_TELEMETRY_DISABLED keeps the log clean.
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build
