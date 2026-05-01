@@ -10,7 +10,9 @@
 //   without a redeploy (env var update + invalidation).
 // - Survives Vercel preview URLs — preview can run v2 while production runs v1.
 
-const VAL = process.env.NEXT_PUBLIC_UI_VERSION;
+// Trim defensive: `echo "v2" | vercel env add` stores "v2\n" — strict
+// equality would fail. Strip whitespace and lowercase before comparing.
+const VAL = (process.env.NEXT_PUBLIC_UI_VERSION ?? "").trim().toLowerCase();
 
 export const UI_VERSION: "v1" | "v2" = VAL === "v2" ? "v2" : "v1";
 
