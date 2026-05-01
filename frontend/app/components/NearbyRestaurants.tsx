@@ -24,10 +24,17 @@ const CAT3_LABEL: Record<string, string> = {
   A05020900: "카페·전통찻집",
 };
 
-type GeoState =
-  | { kind: "loading" }
-  | { kind: "gps"; lat: number; lon: number }
-  | { kind: "fallback"; lat: number; lon: number; reason: "no-api" | "denied" | "timeout" };
+// Geo source for the current center. Drives the secondary status line.
+//   "fallback" — no cache, no GPS yet → using Seoul City Hall
+//   "cache"    — using last-known coords from localStorage (≤1h old)
+//   "gps"      — fresh getCurrentPosition() reading
+type GeoSource = "fallback" | "cache" | "gps";
+
+interface Center {
+  lat: number;
+  lon: number;
+  source: GeoSource;
+}
 
 interface Props {
   language: string;
@@ -37,61 +44,146 @@ function formatRadius(m: number): string {
   return m >= 1000 ? `${m / 1000}km` : `${m}m`;
 }
 
-function resolveGeo(): Promise<GeoState> {
+// localStorage geo cache — survives reloads, 1h TTL. Eliminates the GPS
+// cold-fix wait (1~3s on phones) for repeat visits within the hour.
+const GEO_CACHE_KEY = "menulens.geo.v1";
+const GEO_CACHE_TTL_MS = 60 * 60 * 1000;
+
+interface GeoCache {
+  lat: number;
+  lon: number;
+  ts: number;
+}
+
+function loadCachedGeo(): GeoCache | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(GEO_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as GeoCache;
+    if (Date.now() - parsed.ts > GEO_CACHE_TTL_MS) return null;
+    if (typeof parsed.lat !== "number" || typeof parsed.lon !== "number") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedGeo(lat: number, lon: number) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(GEO_CACHE_KEY, JSON.stringify({ lat, lon, ts: Date.now() }));
+  } catch {
+    /* quota etc. — silent */
+  }
+}
+
+// Haversine — used to decide whether a fresh GPS reading is meaningfully
+// different from the cached one (refetch threshold).
+function distanceMeters(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+  const R = 6_371_000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+
+// Background GPS request. Resolves null on denial/timeout — caller already
+// has a valid (cache or fallback) center, so failure is silent.
+function requestFreshGeo(timeoutMs = 2500): Promise<{ lat: number; lon: number } | null> {
   return new Promise((resolve) => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      resolve({ kind: "fallback", ...SEOUL_CITY_HALL, reason: "no-api" });
+      resolve(null);
       return;
     }
     let settled = false;
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
-      resolve({ kind: "fallback", ...SEOUL_CITY_HALL, reason: "timeout" });
-    }, 5000);
+      resolve(null);
+    }, timeoutMs);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        resolve({
-          kind: "gps",
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-        });
+        const v = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        saveCachedGeo(v.lat, v.lon);
+        resolve(v);
       },
       () => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        resolve({ kind: "fallback", ...SEOUL_CITY_HALL, reason: "denied" });
+        resolve(null);
       },
-      { timeout: 5000, enableHighAccuracy: false, maximumAge: 60_000 }
+      { timeout: timeoutMs, enableHighAccuracy: false, maximumAge: 600_000 }
     );
   });
 }
 
 export function NearbyRestaurants({ language }: Props) {
-  const [geo, setGeo] = useState<GeoState>({ kind: "loading" });
+  // INITIAL CENTER (sync) — lifts the GPS wait out of the user's wall-clock:
+  //   - cached → use it immediately (status: "cache")
+  //   - else  → Seoul City Hall fallback (status: "fallback")
+  // Backend fetch fires off this on the first paint, so the user sees
+  // results in ~1.7s instead of 5+s waiting for GPS prompt/lock.
+  const [center, setCenter] = useState<Center>(() => {
+    const cached = loadCachedGeo();
+    if (cached) return { lat: cached.lat, lon: cached.lon, source: "cache" };
+    return { ...SEOUL_CITY_HALL, source: "fallback" };
+  });
   const [data, setData] = useState<NearbyResponse | null>(null);
   const [busy, setBusy] = useState(true);
   const [radius, setRadius] = useState(500);
+  const [geoBusy, setGeoBusy] = useState(false);
 
+  // Hand-rolled GPS refresh — exposed via a button so denial/timeout doesn't
+  // permanently lock the user out, and so curious users can opt in.
+  const tryFreshGps = async () => {
+    setGeoBusy(true);
+    const g = await requestFreshGeo(2500);
+    setGeoBusy(false);
+    if (!g) return;
+    // If meaningfully different (>100m), refetch; otherwise just upgrade source.
+    setCenter((prev) => {
+      const d = distanceMeters(prev, g);
+      if (prev.source !== "fallback" && d < 100) {
+        return { ...prev, source: "gps" };
+      }
+      return { lat: g.lat, lon: g.lon, source: "gps" };
+    });
+  };
+
+  // Background-fire fresh GPS once on mount. Silent on failure; ~2.5s timeout.
   useEffect(() => {
     let cancelled = false;
-    resolveGeo().then((g) => {
-      if (!cancelled) setGeo(g);
+    requestFreshGeo(2500).then((g) => {
+      if (cancelled || !g) return;
+      setCenter((prev) => {
+        const d = distanceMeters(prev, g);
+        if (prev.source !== "fallback" && d < 100) {
+          return { ...prev, source: "gps" };
+        }
+        return { lat: g.lat, lon: g.lon, source: "gps" };
+      });
     });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  // Fetch on center / radius / language change. Center.source is excluded
+  // from deps so a "cache → gps with ≤100m delta" upgrade doesn't refetch.
   useEffect(() => {
-    if (geo.kind === "loading") return;
     let cancelled = false;
     setBusy(true);
-    fetchNearbyRestaurants(geo.lat, geo.lon, language, radius, 8).then((r) => {
+    fetchNearbyRestaurants(center.lat, center.lon, language, radius, 8).then((r) => {
       if (cancelled) return;
       setData(r);
       setBusy(false);
@@ -99,9 +191,11 @@ export function NearbyRestaurants({ language }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [geo, language, radius]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [center.lat, center.lon, language, radius]);
 
-  const usingFallback = geo.kind === "fallback";
+  const usingFallback = center.source === "fallback";
+  const usingCache = center.source === "cache";
   const items = data?.items ?? [];
 
   return (
@@ -136,19 +230,28 @@ export function NearbyRestaurants({ language }: Props) {
         </div>
       </div>
 
-      {geo.kind === "loading" && (
-        <p className="text-xs text-zinc-500">위치 확인 중…</p>
-      )}
-
-      {usingFallback && (
-        <p className="text-xs text-amber-700 dark:text-amber-400">
-          {geo.reason === "denied"
-            ? "위치 권한 미허용 · 서울시청 기준"
-            : geo.reason === "timeout"
-            ? "위치 응답 지연 · 서울시청 기준"
-            : "위치 API 미지원 · 서울시청 기준"}
-        </p>
-      )}
+      <div className="flex items-center justify-between gap-2 text-xs">
+        {usingFallback && (
+          <span className="text-amber-700 dark:text-amber-400">
+            서울시청 기준 (위치 미허용)
+          </span>
+        )}
+        {usingCache && (
+          <span className="text-zinc-500">📍 최근 위치 사용 중 · 1시간 캐시</span>
+        )}
+        {center.source === "gps" && (
+          <span className="text-emerald-700 dark:text-emerald-400">📍 현재 위치</span>
+        )}
+        <button
+          type="button"
+          onClick={tryFreshGps}
+          disabled={geoBusy}
+          className="ml-auto rounded-md px-2 py-0.5 text-[11px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 disabled:opacity-50 underline-offset-2 hover:underline"
+          aria-label="현재 위치로 다시 가져오기"
+        >
+          {geoBusy ? "위치 확인 중…" : "📍 다시 가져오기"}
+        </button>
+      </div>
 
       {busy && <p className="text-xs text-zinc-500">불러오는 중…</p>}
 
