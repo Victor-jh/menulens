@@ -43,18 +43,30 @@
 사용자 (카메라 📸)
          │
          ▼  [사진 1장]
-  ┌──────────────────────┐
-  │   MenuLens Backend   │
-  │                      │
-  │  ① Menu Reader    ──┐│
-  │   (Gemini Vision)   ││
-  │                     ├┼─→ 🟢🟡🔴 + TTS
-  │  ② Dish Profiler   ─┤│
-  │   (Claude + RAG)    ││
-  │                     ││
-  │  ③ Price Sentinel──┘│
-  │   (Rule + Claude)   │
-  └──────────────────────┘
+  ┌──────────────────────────────┐
+  │   MenuLens Backend           │
+  │                              │
+  │  ⓪ Hermes Router            │  ← Gemini Vision 분류
+  │   (menu / single_dish /      │     parallel dispatch
+  │    not_food)                 │
+  │           │                  │
+  │     ┌─────┴─────┐            │
+  │     ▼           ▼            │
+  │  [menu]   [single_dish]      │
+  │     │           │            │
+  │  ① Menu Reader  ④ Dish      │
+  │   (Gemini Vis)  Finder       │
+  │     │          (LOD bestMenu │
+  │  ② Dish        역방향)       │
+  │   Profiler                   │
+  │   (Claude+RAG)               │
+  │     │                        │
+  │  ③ Price                    │
+  │   Sentinel                   │
+  │     │                        │
+  │     ▼                        │
+  │  🟢🟡🔴 + TTS               │
+  └──────────────────────────────┘
 ```
 
 ## 📊 활용 공공데이터
@@ -83,7 +95,7 @@
 - Python 3.11+
 - Node.js 20+
 - Supabase 계정
-- API 키: Claude, Gemini, OpenAI, Google Cloud
+- API 키: Claude (Anthropic), Gemini (Google AI), Supabase, TourAPI (한국관광공사) — OpenAI 키 불필요 ([ADR-008](DECISIONS.md))
 
 ### 설치
 ```bash
@@ -138,7 +150,8 @@ MENULENS_API=https://menulens-backend.onrender.com pytest tests/test_smoke_e2e.p
 ## 📅 로드맵
 
 - **v0.1 (PoC)**: 사진 모드 + 색깔 오버레이 + 탭-주문 (D1~D7) ✅
-- **v0.2 (D8 진행 중)**: TourAPI LOD/OpenAPI 이중 채널, Pescatarian 페르소나 검증, Vercel+Render 배포
+- **v0.2 (D8~D9)**: TourAPI LOD/OpenAPI 이중 채널, Yui·Aisha 페르소나 검증, Vercel+Render 배포 ✅
+- **v0.3 (D10~D12, 코드 동결)**: Hermes 라우터 + dish_finder + v2 single path, Chen·Mike 검증, CI 28/28 ✅
 - **v1.0 (Post-competition)**: 라이브 AR 모드, B2B 식당 대시보드
 - **v2.0**: 전국 확장, 사용자 크라우드 가격 제보
 
@@ -148,8 +161,8 @@ MENULENS_API=https://menulens-backend.onrender.com pytest tests/test_smoke_e2e.p
 |---|---|
 | [CONTEXT.md](./CONTEXT.md) | Project overview (single-page onboarding) |
 | [ROADMAP.md](./ROADMAP.md) | D1~D16 daily checklist |
-| [DECISIONS.md](./DECISIONS.md) | Architecture decision records (ADR-001~014) |
-| [FAILURES.md](./FAILURES.md) | 19개 함정 기록 (재발 방지) |
+| [DECISIONS.md](./DECISIONS.md) | Architecture decision records (ADR-001~017) |
+| [FAILURES.md](./FAILURES.md) | 25개 함정 기록 (재발 방지) |
 | [docs/proposal.md](./docs/proposal.md) | Competition submission proposal (5p) |
 | [docs/pitch_deck.md](./docs/pitch_deck.md) | 90s demo video shot list |
 | [docs/user_stories.md](./docs/user_stories.md) | 4 user personas |
@@ -163,7 +176,7 @@ MENULENS_API=https://menulens-backend.onrender.com pytest tests/test_smoke_e2e.p
 2026 관광데이터 활용 공모전 ① 웹·앱 개발 부문 제출 프로젝트
 
 - 주최: 한국관광공사
-- 접수: 2026-05-06 (화) 16:00 마감
+- 접수: 2026-05-06 (수) 16:00 마감
 - 개발 기간: 2026-04-21 ~ 2026-09 (MVP)
 
 ## 📜 License

@@ -1,0 +1,87 @@
+1
+00:00:00,000 --> 00:00:05,000
+4 seconds.
+
+2
+00:00:05,000 --> 00:00:10,000
+That's how long tourists stay
+before turning away.
+
+3
+00:00:10,000 --> 00:00:14,000
+What is this dish?
+Is the price fair?
+
+4
+00:00:14,000 --> 00:00:18,000
+Can I eat this?
+How do I order?
+
+5
+00:00:18,000 --> 00:00:20,000
+Papago translates.
+Nothing tells you what to do.
+
+6
+00:00:20,000 --> 00:00:25,000
+DON'T READ.
+
+7
+00:00:25,000 --> 00:00:30,000
+JUST ORDER WHAT'S GREEN.
+
+8
+00:00:30,000 --> 00:00:36,000
+One photo. Three colors:
+green · yellow · red.
+
+9
+00:00:36,000 --> 00:00:42,000
+Tap green — your phone speaks Korean.
+Show it to the staff.
+
+10
+00:00:42,000 --> 00:00:46,000
+Saw a dish online?
+
+11
+00:00:46,000 --> 00:00:50,000
+Same MenuLens app.
+
+12
+00:00:50,000 --> 00:00:54,000
+Find 5 restaurants serving it.
+
+13
+00:00:54,000 --> 00:00:58,000
+20 million tourists in 2026.
+
+14
+00:00:58,000 --> 00:01:02,000
+41.8% of menus are mistranslated.
+
+15
+00:01:02,000 --> 00:01:06,000
+₩300M lawsuit at Gwangjang Market.
+
+16
+00:01:06,000 --> 00:01:12,000
+TourAPI 4.0 + 5 public datasets.
+
+17
+00:01:12,000 --> 00:01:18,000
+First LOD SPARQL use
+in 13 years of the competition.
+
+18
+00:01:18,000 --> 00:01:23,000
+bestMenu inverted into
+a dish ↔ restaurant index.
+
+19
+00:01:23,000 --> 00:01:27,000
+menulens-app.vercel.app
+
+20
+00:01:27,000 --> 00:01:30,000
+One tap. Order what's green.
